@@ -1,0 +1,1227 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>검사지원본부 주간회의 일정</title>
+  <style>
+    :root {
+      --bg: #f0f2f5;
+      --card: #ffffff;
+      --border: #e2e6ea;
+      --ink: #1a1a2e;
+      --ink-sub: #6b7280;
+      --accent: #3b5bdb;
+      --accent-light: #eef2ff;
+      --header-h: 88px;
+
+      --kr: #3a3a3a; --kr-bg: #f6f6f6; --kr-border: #d0d0d0;
+      --vn: #c44040; --vn-bg: #fff5f5; --vn-border: #f0c0c0;
+      --kz: #3a8a5a; --kz-bg: #f0faf4; --kz-border: #a8d8bc;
+      --us: #3a65b0; --us-bg: #f0f4fb; --us-border: #b0c8e8;
+      --pdt: #3a8a5a;
+      --day-sat: #3a65b0; --day-sun: #c44040;
+      --yellow-bg: #fffef0;
+      --radius: 14px;
+      --shadow: 0 2px 8px rgba(0,0,0,0.07), 0 8px 24px rgba(0,0,0,0.05);
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Pretendard",
+           "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+           background: var(--bg); color: var(--ink); min-height: 100vh; }
+
+    /* ── Page Header ── */
+    .page-header {
+      background: var(--card); border-bottom: 1px solid var(--border);
+      padding: 16px 24px 0; position: sticky; top: 0; z-index: 200;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    }
+    .page-title { font-size: 1.15rem; font-weight: 700; margin-bottom: 12px; }
+    .tabs { display: flex; align-items: center; }
+    .dst-badge {
+      margin-left: 12px; font-size: 0.72rem; font-weight: 600;
+      background: #f0faf4; color: var(--kz); border: 1px solid var(--kz-border);
+      border-radius: 999px; padding: 3px 10px; white-space: nowrap;
+    }
+    .tab-btn {
+      padding: 8px 22px 10px; font-size: 0.93rem; font-weight: 600;
+      font-family: inherit; color: var(--ink-sub); background: none;
+      border: none; border-bottom: 2.5px solid transparent;
+      cursor: pointer; transition: color .15s, border-color .15s;
+    }
+    .tab-btn:hover { color: var(--ink); }
+    .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+    /* ── Tab Panels ── */
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    /* ══ Tab 1: 회의 일정 ══ */
+    .schedule-layout {
+      display: flex; flex-direction: row; gap: 0; align-items: flex-start;
+    }
+
+    /* Left calendar sidebar — 3 months stacked vertically */
+    .cal-sidebar {
+      width: 220px; flex-shrink: 0;
+      position: sticky; top: var(--header-h);
+      height: calc(100vh - var(--header-h));
+      overflow-y: auto; overflow-x: hidden;
+      padding: 14px 12px 32px;
+      border-right: 1px solid var(--border);
+      background: var(--card);
+      display: flex; flex-direction: column; gap: 16px; align-items: center;
+    }
+    .cal-sidebar::-webkit-scrollbar { width: 4px; }
+    .cal-sidebar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+    .cal-month-col { width: 100%; }
+
+    .cal-month-hdr {
+      display: flex; align-items: center; justify-content: center; gap: 5px;
+      padding: 6px 10px; border-radius: 9px; margin-bottom: 8px;
+      font-size: 0.78rem; font-weight: 700; color: var(--ink);
+      cursor: pointer; user-select: none;
+      background: linear-gradient(to bottom, #ffffff 0%, #f0f2f5 100%);
+      border: 1px solid rgba(0,0,0,0.10);
+      box-shadow: 0 2px 5px rgba(0,0,0,0.09), 0 1px 2px rgba(0,0,0,0.05),
+                  inset 0 1px 0 rgba(255,255,255,0.85);
+      transition: box-shadow .15s;
+    }
+    .cal-month-hdr:hover {
+      box-shadow: 0 3px 8px rgba(0,0,0,0.13), 0 1px 3px rgba(0,0,0,0.07),
+                  inset 0 1px 0 rgba(255,255,255,0.85);
+    }
+    .cal-month-col.is-cur .cal-month-hdr {
+      background: linear-gradient(to bottom, #eef2ff 0%, #dde4ff 100%);
+      border-color: #b8c8f5; color: var(--accent);
+      box-shadow: 0 2px 6px rgba(59,91,219,0.18), 0 1px 2px rgba(59,91,219,0.10),
+                  inset 0 1px 0 rgba(255,255,255,0.65);
+    }
+    .cal-menu-icon { font-size: 0.88rem; flex-shrink: 0; opacity: 0.7; }
+    .cal-month-col.is-cur .cal-menu-icon { opacity: 1; }
+    .cal-cur-dot { width: 6px; height: 6px; border-radius: 50%;
+                   background: var(--accent); flex-shrink: 0; }
+    .cal-hdr-label { }
+    .cal-month-col:not(.is-cur) { width: 85%; }
+    .cal-month-col:not(.is-cur) .cal-month-hdr {
+      font-size: 0.69rem; padding: 4px 8px;
+    }
+    .cal-month-col:not(.is-cur) .cal-menu-icon { font-size: 0.77rem; }
+
+    /* ── Calendar grids ── */
+    .cal-grid-lg  { display: grid; grid-template-columns: repeat(7, 24px); row-gap: 2px; justify-content: center; }
+    .cal-grid-md  { display: grid; grid-template-columns: repeat(7, 20px); row-gap: 1px; justify-content: center; }
+    .cal-hdr      { text-align: center; font-weight: 700; }
+    .cal-hdr.lg   { font-size: 0.63rem; color: var(--ink-sub); padding: 2px 0 5px; }
+    .cal-hdr.md   { font-size: 0.56rem; color: var(--ink-sub); padding: 2px 0 4px; }
+    .cal-hdr.h-sat { color: var(--day-sat); } .cal-hdr.h-sun { color: var(--day-sun); }
+    .cal-day { display: flex; align-items: center; justify-content: center;
+               border-radius: 50%; color: var(--ink-sub); }
+    .cal-day.lg   { width: 24px; height: 24px; font-size: 0.7rem; }
+    .cal-day.md   { width: 20px; height: 20px; font-size: 0.63rem; }
+    .cal-day.d-sat { color: var(--day-sat); } .cal-day.d-sun { color: var(--day-sun); }
+    .cal-day.d-meet { background: transparent !important; font-weight: 600;
+                      box-shadow: 0 0 0 1.5px var(--vn); }
+    .cal-day.md.d-meet { box-shadow: 0 0 0 1px var(--vn); }
+    .cal-day.d-holiday { color: var(--vn) !important; font-weight: 700 !important; cursor: pointer; }
+
+    /* 공휴일 팝업 */
+    .hol-popup {
+      position: fixed; z-index: 400; display: none;
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 9px; padding: 10px 14px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.18);
+      font-size: 0.8rem; max-width: 260px; min-width: 160px;
+    }
+    .hol-popup-title { font-size: 0.67rem; font-weight: 700; color: var(--ink-sub);
+                       text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 7px; }
+    .hol-popup-item { display: flex; gap: 5px; margin-bottom: 4px; line-height: 1.3; }
+    .hol-popup-item:last-child { margin-bottom: 0; }
+    .hol-popup-country { font-weight: 700; color: var(--ink); white-space: nowrap; }
+    .hol-popup-name { color: var(--vn); }
+
+    /* Main */
+    .meeting-main { flex: 1; min-width: 0; padding: 20px 24px 64px; }
+    .month-section { margin-bottom: 28px; }
+    .month-section-label {
+      font-size: 0.72rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.07em; color: var(--ink-sub);
+      margin-bottom: 10px; padding-left: 2px;
+    }
+    .meeting-item {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: var(--radius); box-shadow: var(--shadow);
+      overflow: hidden; margin-bottom: 12px;
+    }
+    .meeting-item-header { padding: 12px 18px; border-bottom: 1px solid var(--border);
+                            background: #f8f9fa; border-radius: var(--radius) var(--radius) 0 0; }
+    .meeting-week  { font-size: 0.95rem; font-weight: 700; color: var(--ink);
+                     letter-spacing: 0.02em; }
+    .meeting-title { font-size: 0.97rem; font-weight: 700; color: var(--ink); }
+    .meeting-sub   { font-size: 0.8rem; color: var(--ink-sub); margin-top: 2px; }
+    .meeting-body  { padding: 14px 18px 16px; }
+
+    /* Country cards */
+    .country-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; margin-bottom: 12px; }
+    @media (max-width: 900px) { .country-grid { grid-template-columns: repeat(2,1fr); } }
+    .c-card { border-radius: 10px; border: 1.5px solid var(--border);
+               padding: 11px 12px 13px; display: flex; flex-direction: column; gap: 2px; }
+    .c-card.kr { background: var(--kr-bg); border-color: var(--kr-border); }
+    .c-card.vn { background: var(--vn-bg); border-color: var(--vn-border); }
+    .c-card.kz { background: var(--kz-bg); border-color: var(--kz-border); }
+    .c-card.us { background: var(--us-bg); border-color: var(--us-border); }
+    .c-code { font-size: 0.67rem; font-weight: 800; letter-spacing: 0.07em; margin-bottom: 1px; }
+    .c-card.kr .c-code { color: var(--kr); } .c-card.vn .c-code { color: var(--vn); }
+    .c-card.kz .c-code { color: var(--kz); } .c-card.us .c-code { color: var(--us); }
+    .c-dst { font-size: 0.62rem; font-weight: 700; color: var(--pdt); margin-left: 4px; }
+    .c-date-row { display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; }
+    .c-holi-text { color: var(--vn) !important; font-weight: 700 !important; }
+    .c-holi-name { font-size: 0.72rem; font-weight: 700; color: var(--vn); white-space: nowrap; }
+    .c-divider { width: calc(100% - 1px); height: 1px;
+                  background: rgba(0,0,0,0.12);
+                  margin: 7px 0 5px; border-radius: 1px; flex-shrink: 0; }
+    .c-date    { font-size: 0.84rem; font-weight: 700; color: var(--ink); }
+    .c-weekday { font-size: 0.84rem; font-weight: 500; }
+    .c-weekday.wd-sat  { color: var(--day-sat); } .c-weekday.wd-sun { color: var(--day-sun); }
+    .c-weekday.wd-week { color: var(--ink-sub); }
+    .c-time    { font-size: 0.84rem; font-weight: 700; color: var(--ink); }
+
+    /* Video info */
+    .video-info { background: #f8f9fa; border: 1px solid var(--border); border-radius: 10px; padding: 11px 14px; }
+    .video-info-title { font-size: 0.66rem; font-weight: 700; text-transform: uppercase;
+                         letter-spacing: 0.08em; color: var(--ink-sub); margin-bottom: 7px; }
+    .video-info-rows { display: flex; flex-direction: column; gap: 5px; }
+    .video-info-row  { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .vi-label { font-size: 0.7rem; font-weight: 700; color: var(--ink-sub); width: 52px; flex-shrink: 0; }
+    .vi-value { font-size: 0.83rem; color: var(--ink); word-break: break-all; }
+    .vi-value a { color: var(--accent); text-decoration: none; }
+    .vi-value a:hover { text-decoration: underline; }
+    .btn-copy { font-size: 0.66rem; font-weight: 600; color: var(--accent);
+                 background: var(--accent-light); border: none; border-radius: 4px;
+                 padding: 2px 7px; cursor: pointer; font-family: inherit; flex-shrink: 0; }
+    .btn-copy:hover { background: #dde4ff; }
+
+    .meeting-empty { text-align: center; padding: 56px 24px;
+                      background: var(--card); border: 1px dashed var(--border);
+                      border-radius: var(--radius); }
+    .meeting-empty p     { font-size: 0.95rem; margin-bottom: 6px; }
+    .meeting-empty small { font-size: 0.82rem; color: var(--ink-sub); }
+
+    /* ══ Tab 2: 설정 ══ */
+    .settings-outer { max-width: 1400px; margin: 0 auto; padding: 16px 32px 24px; }
+
+    /* Settings left-tab layout */
+    .settings-layout {
+      display: flex; align-items: stretch;
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden;
+    }
+    .settings-nav {
+      width: 190px; flex-shrink: 0;
+      border-right: 1px solid var(--border);
+      padding: 16px 0; background: #fbfbfc;
+      overflow-y: auto;
+    }
+    .settings-nav-btn {
+      display: block; width: 100%; padding: 12px 28px; text-align: left;
+      font-size: 0.88rem; font-weight: 600; font-family: inherit;
+      color: var(--ink-sub); background: none; border: none; border-left: 3px solid transparent;
+      cursor: pointer; transition: color .15s, background .15s;
+    }
+    .settings-nav-btn:hover { color: var(--ink); background: #f0f1f3; }
+    .settings-nav-btn.active { color: var(--accent); background: var(--card); border-left-color: var(--accent); }
+    .settings-content { flex: 1; min-width: 0; padding: 14px 28px 16px; }
+    .settings-tab-panel { display: none; }
+    .settings-tab-panel.active { display: block; }
+
+    .settings-top { display: grid; grid-template-columns: 1.3fr 1fr; gap: 28px; }
+    @media (max-width: 680px) { .settings-top { grid-template-columns: 1fr; } }
+
+    .settings-panel {
+      background: #ffffff; border: 1px solid var(--border);
+      border-radius: 10px; padding: 10px 14px 12px;
+    }
+    .sp-header {
+      display: flex; justify-content: space-between; align-items: center;
+      font-size: 0.83rem; font-weight: 700; color: var(--ink);
+      padding-bottom: 6px; border-bottom: 1px solid var(--border); margin-bottom: 8px;
+    }
+
+    /* Email reminder section */
+    .reminder-section {
+      display: grid; grid-template-columns: 1.3fr 1fr; gap: 28px;
+    }
+    @media (max-width: 680px) { .reminder-section { grid-template-columns: 1fr; } }
+
+    /* Form elements */
+    .form-row { display: flex; flex-direction: column; gap: 2px; margin-bottom: 6px; }
+    .form-row label { font-size: 0.7rem; font-weight: 600; color: var(--ink-sub); }
+    .form-row input, .form-row select {
+      height: 30px; padding: 0 9px; border: 1.5px solid var(--border);
+      border-radius: 7px; font-size: 0.84rem; font-family: inherit; color: var(--ink);
+      background: #fafbfc; transition: border-color .15s; width: 100%;
+    }
+    .form-row input:focus, .form-row select:focus { outline: none; border-color: var(--accent); background: #fff; }
+    .form-row textarea {
+      padding: 5px 9px; border: 1.5px solid var(--border); border-radius: 7px;
+      font-size: 0.82rem; font-family: inherit; color: var(--ink);
+      background: #fafbfc; transition: border-color .15s; width: 100%; resize: vertical; line-height: 1.4;
+    }
+    .form-row textarea:focus { outline: none; border-color: var(--accent); background: #fff; }
+    .form-duration { display: flex; gap: 7px; align-items: center; }
+    .form-duration select { flex: 1; }
+    .form-sep { font-size: 0.78rem; color: var(--ink-sub); white-space: nowrap; }
+    .pw-wrap { position: relative; }
+    .pw-wrap input { padding-right: 48px; }
+    .btn-toggle-pw {
+      position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+      font-size: 0.68rem; font-weight: 600; color: var(--ink-sub);
+      background: none; border: none; cursor: pointer; font-family: inherit;
+    }
+    /* Add form 2열 레이아웃 */
+    .add-form-top {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 10px;
+    }
+    .add-form-left { display: flex; flex-direction: column; }
+    .add-form-right { display: flex; flex-direction: column; }
+    .add-form-right .form-row { display: flex; flex-direction: column; gap: 2px; height: 100%; }
+    .add-form-bottom { border-top: 1px solid var(--border); padding-top: 10px; margin-top: 2px; }
+    @media (max-width: 680px) { .add-form-top { grid-template-columns: 1fr; } }
+
+    .parse-result { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 3px; }
+    .parse-tag { font-size: 0.68rem; font-weight: 600; padding: 2px 8px; border-radius: 999px; border: 1px solid; }
+    .parse-tag.found   { background: #f0faf4; color: var(--kz); border-color: var(--kz-border); }
+    .parse-tag.missing { background: var(--bg); color: var(--ink-sub); border-color: var(--border); }
+
+    .btn-add-entry {
+      height: 26px; padding: 0 16px; background: var(--accent); color: #fff;
+      border: none; border-radius: 6px; font-size: 0.78rem; font-weight: 700;
+      font-family: inherit; cursor: pointer; transition: background .15s; white-space: nowrap;
+    }
+    .btn-add-entry:hover { background: #2f4ac0; }
+
+    /* Saved list */
+    .saved-list { display: flex; flex-direction: column; gap: 7px; }
+    .saved-empty { text-align: center; padding: 22px; color: var(--ink-sub); font-size: 0.84rem; }
+    .saved-item {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 10px 12px; background: var(--bg);
+      border: 1px solid var(--border); border-radius: 8px; gap: 8px;
+    }
+    .saved-item.is-past { opacity: 0.45; }
+    .saved-item-info { flex: 1; min-width: 0; }
+    .saved-item-title { font-size: 0.86rem; font-weight: 600; color: var(--ink); }
+    .saved-item-sub   { font-size: 0.74rem; color: var(--ink-sub); margin-top: 1px; }
+    .saved-item-link  { font-size: 0.7rem; color: var(--accent); margin-top: 1px;
+                         white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 180px; }
+    .saved-item-btns  { display: flex; gap: 5px; flex-shrink: 0; }
+    .btn-edit { font-size: 0.71rem; font-weight: 600; color: var(--accent);
+                 background: var(--accent-light); border: 1px solid #c5d0f5; border-radius: 5px;
+                 padding: 3px 9px; cursor: pointer; font-family: inherit; }
+    .btn-edit:hover { background: #dde4ff; }
+    .btn-del  { font-size: 0.71rem; font-weight: 600; color: var(--ink-sub);
+                 background: none; border: 1px solid var(--border); border-radius: 5px;
+                 padding: 3px 9px; cursor: pointer; font-family: inherit;
+                 transition: color .15s, border-color .15s; }
+    .btn-del:hover { color: var(--vn); border-color: var(--vn-border); }
+
+    /* ── Email address book ── */
+    .contact-add-row {
+      display: flex; gap: 6px; margin-bottom: 10px;
+    }
+    .contact-add-row input { flex: 1; height: 36px; padding: 0 10px; border: 1.5px solid var(--border);
+                              border-radius: 7px; font-size: 0.84rem; font-family: inherit; color: var(--ink);
+                              background: #fafbfc; min-width: 0; }
+    .contact-add-row input:focus { outline: none; border-color: var(--accent); background: #fff; }
+    .btn-add-contact {
+      height: 36px; padding: 0 14px; background: var(--accent); color: #fff;
+      border: none; border-radius: 7px; font-size: 0.82rem; font-weight: 600;
+      font-family: inherit; cursor: pointer; white-space: nowrap; flex-shrink: 0;
+    }
+    .btn-add-contact:hover { background: #2f4ac0; }
+    .contact-list { display: flex; flex-direction: column; gap: 6px; }
+    .contact-empty { text-align: center; padding: 16px; color: var(--ink-sub); font-size: 0.82rem; }
+    .contact-item {
+      display: flex; align-items: center; gap: 8px; padding: 8px 10px;
+      background: var(--bg); border: 1px solid var(--border); border-radius: 7px;
+    }
+    .contact-info { flex: 1; min-width: 0; }
+    .contact-name  { font-size: 0.82rem; font-weight: 600; color: var(--ink); }
+    .contact-email { font-size: 0.75rem; color: var(--ink-sub);
+                      white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .contact-btns  { display: flex; gap: 4px; flex-shrink: 0; }
+
+    /* Reminder settings */
+    .reminder-days-row {
+      display: flex; align-items: center; gap: 10px; margin-bottom: 14px;
+      padding: 12px 14px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
+    }
+    .reminder-days-row label { font-size: 0.78rem; font-weight: 600; color: var(--ink-sub); flex: 1; }
+    .reminder-days-row input[type="number"] {
+      width: 64px; height: 34px; padding: 0 10px; text-align: center;
+      border: 1.5px solid var(--border); border-radius: 7px; font-size: 0.9rem;
+      font-family: inherit; color: var(--ink); background: #fff; flex-shrink: 0;
+    }
+    .reminder-days-row input[type="number"]:focus { outline: none; border-color: var(--accent); }
+    .reminder-days-unit { font-size: 0.8rem; color: var(--ink-sub); white-space: nowrap; }
+
+    .reminder-badge { display: inline-block; margin-top: 4px; font-size: 0.67rem; font-weight: 700;
+                      padding: 2px 8px; border-radius: 999px; border: 1px solid; }
+    .badge-pending  { background: #fff8e7; color: #92650a; border-color: #f6d860; }
+    .badge-auto     { background: var(--accent-light); color: var(--accent); border-color: #c5d0f5; }
+    .badge-manual   { background: #f0faf4; color: var(--kz); border-color: var(--kz-border); }
+    .reminder-status-title { font-size: 0.72rem; font-weight: 700; color: var(--ink-sub);
+                               text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 8px; }
+    .reminder-item {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 9px 12px; background: var(--bg); border: 1px solid var(--border);
+      border-radius: 7px; margin-bottom: 6px; gap: 8px;
+    }
+    .reminder-item-info { flex: 1; }
+    .reminder-item-date { font-size: 0.84rem; font-weight: 600; color: var(--ink); }
+    .reminder-item-due  { font-size: 0.74rem; color: var(--ink-sub); margin-top: 1px; }
+    .reminder-item-due.urgent { color: var(--vn); font-weight: 600; }
+    .btn-send-mail {
+      font-size: 0.72rem; font-weight: 700; color: #fff; background: var(--vn);
+      border: none; border-radius: 6px; padding: 4px 11px; cursor: pointer;
+      font-family: inherit; white-space: nowrap; flex-shrink: 0; transition: background .15s;
+    }
+    .btn-send-mail:hover { background: #a83434; }
+    .reminder-no-contacts { font-size: 0.8rem; color: var(--ink-sub); text-align: center; padding: 12px; }
+    .reminder-none { font-size: 0.8rem; color: var(--ink-sub); text-align: center; padding: 12px; }
+
+    /* Timezone hint */
+    #tz-hint { font-size: 0.67rem; font-weight: 500; color: var(--accent); opacity: 0.85; }
+    #tz-hint.loading::after { content: '위치 확인 중...'; }
+
+    /* ── Modal ── */
+    .modal-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.42);
+      z-index: 500; display: flex; align-items: center; justify-content: center;
+      backdrop-filter: blur(3px); padding: 16px;
+    }
+    .modal {
+      background: var(--card); border-radius: var(--radius);
+      box-shadow: 0 24px 64px rgba(0,0,0,0.28);
+      width: min(500px, 100%); max-height: calc(100vh - 40px); overflow-y: auto;
+      padding: 22px 22px 24px;
+    }
+    .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+    .modal-header h3 { font-size: 0.97rem; font-weight: 700; }
+    .btn-modal-close {
+      width: 28px; height: 28px; border-radius: 50%; border: 1px solid var(--border);
+      background: none; font-size: 0.95rem; color: var(--ink-sub); cursor: pointer;
+      display: flex; align-items: center; justify-content: center; font-family: inherit;
+    }
+    .btn-modal-close:hover { background: var(--bg); }
+    .modal-divider { height: 1px; background: var(--border); margin: 12px 0; }
+    .modal-footer  { display: flex; gap: 8px; margin-top: 14px; }
+    .btn-modal-cancel {
+      flex: 1; height: 38px; background: var(--bg); color: var(--ink-sub);
+      border: 1px solid var(--border); border-radius: 7px;
+      font-size: 0.88rem; font-weight: 600; font-family: inherit; cursor: pointer;
+    }
+    .btn-modal-cancel:hover { background: #e8eaed; }
+    .btn-modal-save {
+      flex: 2; height: 38px; background: var(--accent); color: #fff;
+      border: none; border-radius: 7px;
+      font-size: 0.88rem; font-weight: 600; font-family: inherit; cursor: pointer;
+    }
+    .btn-modal-save:hover { background: #2f4ac0; }
+
+    @media (max-width: 700px) {
+      .cal-sidebar { display: none; }
+      .meeting-main { padding: 16px; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="page-header">
+    <div class="page-title">검사지원본부 주간회의 일정</div>
+    <div class="tabs">
+      <button class="tab-btn active" onclick="switchTab('schedule')">회의 일정</button>
+      <button class="tab-btn"        onclick="switchTab('settings')">설정</button>
+      <span class="dst-badge">서머타임(DST) 자동 적용</span>
+    </div>
+  </div>
+
+  <!-- ══ Tab 1: 회의 일정 ══ -->
+  <div class="tab-panel active" id="tab-schedule">
+    <div class="schedule-layout">
+      <aside class="cal-sidebar" id="cal-sidebar"></aside>
+      <main  class="meeting-main" id="meeting-main"></main>
+    </div>
+  </div>
+
+  <!-- ══ Tab 2: 설정 ══ -->
+  <div class="tab-panel" id="tab-settings">
+    <div class="settings-outer">
+      <div class="settings-layout">
+
+        <!-- Left nav -->
+        <nav class="settings-nav">
+          <button class="settings-nav-btn active" onclick="switchSettingsTab('meetings')">회의 일정</button>
+          <button class="settings-nav-btn"        onclick="switchSettingsTab('reminder')">리마인더 메일 발송</button>
+        </nav>
+
+        <!-- Right content -->
+        <div class="settings-content">
+
+          <!-- ─ 회의 일정 탭 ─ -->
+          <div class="settings-tab-panel active" id="stab-meetings">
+            <div class="settings-top">
+
+              <!-- Add form -->
+              <div class="settings-panel">
+                <div class="sp-header">
+                  새 회의 일정 추가
+                  <button class="btn-add-entry" onclick="saveEntry()">+ 추가</button>
+                </div>
+                <!-- 상단 2열: 좌(날짜·시간) / 우(붙여넣기) -->
+                <div class="add-form-top">
+                  <div class="add-form-left">
+                    <div class="form-row">
+                      <label for="s-date">기준 날짜 (한국) <span id="tz-hint"></span></label>
+                      <input type="date" id="s-date" />
+                    </div>
+                    <div class="form-row">
+                      <label for="s-time">시작 시간 (한국)</label>
+                      <input type="time" id="s-time" value="13:30" />
+                    </div>
+                    <div class="form-row">
+                      <label>회의 시간</label>
+                      <div class="form-duration">
+                        <select id="s-dur-h"></select><span class="form-sep">시간</span>
+                        <select id="s-dur-m"></select><span class="form-sep">분</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="add-form-right">
+                    <div class="form-row" style="height:100%;">
+                      <label for="s-paste">화상 회의 정보 붙여넣기 <span style="font-weight:400;color:var(--ink-sub);">— 자동 추출</span></label>
+                      <textarea id="s-paste" style="flex:1;min-height:80px;"
+                        placeholder="참가: https://teams.microsoft.com/meet/...&#10;모임 ID: 465 736 402 261 86&#10;암호: Vt7wK6Ny"
+                        oninput="parsePaste('s-paste','s-link','s-addr','s-pw','parse-result')"></textarea>
+                      <div class="parse-result" id="parse-result"></div>
+                    </div>
+                  </div>
+                </div>
+                <!-- 하단 전체 너비: 링크·주소·암호 -->
+                <div class="add-form-bottom">
+                  <div class="form-row">
+                    <label for="s-link">링크</label>
+                    <input type="url" id="s-link" placeholder="https://..." />
+                  </div>
+                  <div class="form-row">
+                    <label for="s-addr">주소 / 회의 ID</label>
+                    <input type="text" id="s-addr" placeholder="465 736 402 261 86" />
+                  </div>
+                  <div class="form-row">
+                    <label for="s-pw">암호</label>
+                    <div class="pw-wrap">
+                      <input type="password" id="s-pw" placeholder="••••••" autocomplete="off" />
+                      <button class="btn-toggle-pw" type="button" onclick="togglePw('s-pw',this)">표시</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Saved list -->
+              <div class="settings-panel">
+                <div class="sp-header">
+                  저장된 일정
+                  <button class="btn-del" onclick="clearAll()" style="font-size:0.7rem;">전체 삭제</button>
+                </div>
+                <div class="saved-list" id="saved-list"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ─ 리마인더 메일 발송 탭 ─ -->
+          <div class="settings-tab-panel" id="stab-reminder">
+            <div class="reminder-section">
+
+              <!-- 주소록 -->
+              <div class="settings-panel">
+                <div class="sp-header">리마인드 메일 주소록</div>
+                <div class="contact-add-row">
+                  <input type="text"  id="c-name"  placeholder="이름 (선택)" style="max-width:100px;" />
+                  <input type="email" id="c-email" placeholder="이메일 주소" />
+                  <button class="btn-add-contact" onclick="addContact()">추가</button>
+                </div>
+                <div class="contact-list" id="contact-list"></div>
+              </div>
+
+              <!-- 발송 설정 + 리마인드 현황 -->
+              <div class="settings-panel">
+                <div class="sp-header">발송 설정 및 리마인드 현황</div>
+                <div class="reminder-days-row">
+                  <label>회의 몇 일 전에 발송할지</label>
+                  <input type="number" id="remind-days" min="1" max="30" value="5"
+                         oninput="saveReminderSettings(); renderReminderStatus()" />
+                  <span class="reminder-days-unit">일 전 (한국 시간 기준)</span>
+                </div>
+                <div class="reminder-status-title">리마인드 예정 회의</div>
+                <div id="reminder-status"></div>
+              </div>
+            </div>
+          </div>
+
+        </div><!-- /settings-content -->
+      </div><!-- /settings-layout -->
+    </div>
+  </div>
+
+  <!-- 공휴일 팝업 -->
+  <div class="hol-popup" id="hol-popup"></div>
+
+  <!-- ══ Edit Modal ══ -->
+  <div class="modal-overlay" id="modal-overlay" style="display:none;" onclick="closeModalOutside(event)">
+    <div class="modal" id="edit-modal">
+      <div class="modal-header">
+        <h3>회의 일정 수정</h3>
+        <button class="btn-modal-close" onclick="closeModal()">✕</button>
+      </div>
+      <div class="form-row">
+        <label for="m-date">기준 날짜 (한국)</label>
+        <input type="date" id="m-date" />
+      </div>
+      <div class="form-row">
+        <label for="m-time">시작 시간 (한국)</label>
+        <input type="time" id="m-time" />
+      </div>
+      <div class="form-row">
+        <label>회의 시간</label>
+        <div class="form-duration">
+          <select id="m-dur-h"></select><span class="form-sep">시간</span>
+          <select id="m-dur-m"></select><span class="form-sep">분</span>
+        </div>
+      </div>
+      <div class="modal-divider"></div>
+      <div class="form-row">
+        <label for="m-paste">화상 회의 정보 붙여넣기 <span style="font-weight:400;color:var(--ink-sub);">— 자동 추출</span></label>
+        <textarea id="m-paste" rows="3"
+          placeholder="참가: https://...&#10;모임 ID: ...&#10;암호: ..."
+          oninput="parsePaste('m-paste','m-link','m-addr','m-pw','m-parse-result')"></textarea>
+        <div class="parse-result" id="m-parse-result"></div>
+      </div>
+      <div class="form-row">
+        <label for="m-link">링크</label>
+        <input type="url" id="m-link" />
+      </div>
+      <div class="form-row">
+        <label for="m-addr">주소 / 회의 ID</label>
+        <input type="text" id="m-addr" />
+      </div>
+      <div class="form-row">
+        <label for="m-pw">암호</label>
+        <div class="pw-wrap">
+          <input type="password" id="m-pw" autocomplete="off" />
+          <button class="btn-toggle-pw" onclick="togglePw('m-pw',this)">표시</button>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-modal-cancel" onclick="closeModal()">취소</button>
+        <button class="btn-modal-save"   onclick="saveEdit()">저장</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const CITIES = [
+      { key:'kr', code:'KR', country:'한국',       city:'서울',   tz:'Asia/Seoul' },
+      { key:'vn', code:'VN', country:'베트남',     city:'하노이', tz:'Asia/Ho_Chi_Minh' },
+      { key:'kz', code:'KZ', country:'카자흐스탄', city:'알마티', tz:'Asia/Almaty' },
+      { key:'us', code:'US', country:'미국',        city:'LA',    tz:'America/Los_Angeles' },
+    ];
+
+    // ── 공휴일 데이터 (YYYY-MM-DD → 공휴일명) ──
+    const HOLIDAYS = {
+      'Asia/Seoul': {
+        '2025-01-01':'신정','2025-01-28':'설날 연휴','2025-01-29':'설날','2025-01-30':'설날 연휴',
+        '2025-03-01':'삼일절','2025-03-03':'삼일절 대체공휴일',
+        '2025-05-05':'어린이날·부처님오신날','2025-05-06':'대체공휴일',
+        '2025-06-06':'현충일','2025-08-15':'광복절',
+        '2025-10-02':'추석 연휴','2025-10-03':'개천절·추석','2025-10-05':'추석 연휴','2025-10-06':'추석 대체공휴일',
+        '2025-10-09':'한글날','2025-12-25':'크리스마스',
+        '2026-01-01':'신정','2026-02-16':'설날 연휴','2026-02-17':'설날','2026-02-18':'설날 연휴',
+        '2026-03-01':'삼일절','2026-03-02':'삼일절 대체공휴일',
+        '2026-05-05':'어린이날','2026-05-24':'부처님오신날','2026-05-25':'부처님오신날 대체공휴일',
+        '2026-06-06':'현충일','2026-08-15':'광복절',
+        '2026-09-23':'추석 연휴','2026-09-24':'추석','2026-09-25':'추석 연휴',
+        '2026-10-03':'개천절','2026-10-05':'개천절 대체공휴일','2026-10-09':'한글날','2026-12-25':'크리스마스',
+      },
+      'Asia/Ho_Chi_Minh': {
+        '2025-01-01':'양력 설날','2025-01-27':'설날 연휴 (Tết)','2025-01-28':'설날 연휴 (Tết)',
+        '2025-01-29':'설날 (Tết Nguyên Đán)','2025-01-30':'설날 연휴 (Tết)','2025-01-31':'설날 연휴 (Tết)',
+        '2025-04-07':'흥왕기일 (Giỗ Tổ Hùng Vương)','2025-04-30':'통일의 날','2025-05-01':'노동절','2025-09-02':'국경일',
+        '2026-01-01':'양력 설날',
+        '2026-02-14':'설날 연휴 (Tết)','2026-02-15':'설날 연휴 (Tết)','2026-02-16':'설날 연휴 (Tết)',
+        '2026-02-17':'설날 (Tết Nguyên Đán)','2026-02-18':'설날 연휴 (Tết)','2026-02-19':'설날 연휴 (Tết)',
+        '2026-04-16':'흥왕기일 (Giỗ Tổ Hùng Vương)','2026-04-30':'통일의 날','2026-05-01':'노동절','2026-09-02':'국경일',
+      },
+      'Asia/Almaty': {
+        '2025-01-01':'새해','2025-01-02':'새해 연휴','2025-01-07':'정교회 크리스마스',
+        '2025-03-08':'국제 여성의 날','2025-03-21':'나우르즈','2025-03-22':'나우르즈','2025-03-23':'나우르즈',
+        '2025-05-01':'국민단결의 날','2025-05-07':'조국수호자의 날','2025-05-09':'전승절',
+        '2025-07-06':'수도의 날','2025-08-30':'헌법의 날','2025-10-25':'공화국의 날',
+        '2025-12-16':'독립기념일','2025-12-17':'독립기념일',
+        '2026-01-01':'새해','2026-01-02':'새해 연휴','2026-01-07':'정교회 크리스마스',
+        '2026-03-08':'국제 여성의 날','2026-03-21':'나우르즈','2026-03-22':'나우르즈','2026-03-23':'나우르즈',
+        '2026-05-01':'국민단결의 날','2026-05-07':'조국수호자의 날','2026-05-09':'전승절',
+        '2026-07-06':'수도의 날','2026-08-30':'헌법의 날','2026-10-25':'공화국의 날',
+        '2026-12-16':'독립기념일','2026-12-17':'독립기념일',
+      },
+      'America/Los_Angeles': {
+        '2025-01-01':'새해 (New Year\'s Day)','2025-01-20':'마틴 루터 킹의 날','2025-02-17':'대통령의 날',
+        '2025-05-26':'현충일 (Memorial Day)','2025-06-19':'준틴스 (Juneteenth)','2025-07-04':'독립기념일',
+        '2025-09-01':'노동절 (Labor Day)','2025-10-13':'콜럼버스의 날','2025-11-11':'재향군인의 날',
+        '2025-11-27':'추수감사절','2025-12-25':'크리스마스',
+        '2026-01-01':'새해 (New Year\'s Day)','2026-01-19':'마틴 루터 킹의 날','2026-02-16':'대통령의 날',
+        '2026-05-25':'현충일 (Memorial Day)','2026-06-19':'준틴스 (Juneteenth)','2026-07-03':'독립기념일 (대체)',
+        '2026-09-07':'노동절 (Labor Day)','2026-10-12':'콜럼버스의 날','2026-11-11':'재향군인의 날',
+        '2026-11-26':'추수감사절','2026-12-25':'크리스마스',
+      },
+    };
+
+    // ── Init selects ──
+    function fillDur(hId, mId, defH=1, defM=0) {
+      const sh=document.getElementById(hId), sm=document.getElementById(mId);
+      for(let h=0;h<=12;h++){const o=document.createElement('option');o.value=h;o.textContent=h;if(h===defH)o.selected=true;sh.appendChild(o);}
+      [0,10,15,20,30,40,45,50].forEach(m=>{const o=document.createElement('option');o.value=m;o.textContent=String(m).padStart(2,'0');if(m===defM)o.selected=true;sm.appendChild(o);});
+    }
+    fillDur('s-dur-h','s-dur-m'); fillDur('m-dur-h','m-dur-m');
+
+    // ── IP date init ──
+    async function initDate() {
+      const hint = document.getElementById('tz-hint');
+      hint.className='loading';
+      try {
+        const res=await fetch('https://worldtimeapi.org/api/ip',{cache:'no-store'});
+        const data=await res.json();
+        document.getElementById('s-date').value=data.datetime.slice(0,10);
+        hint.className=''; hint.textContent=`(${data.timezone})`;
+      } catch {
+        const t=new Date();
+        document.getElementById('s-date').value=`${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')}`;
+        hint.className='';
+      }
+    }
+    const FORM_PREF_KEY='meetingFormPref_v1';
+    function saveFormPref(){
+      const t=document.getElementById('s-time').value;
+      const h=document.getElementById('s-dur-h').value;
+      const m=document.getElementById('s-dur-m').value;
+      if(t) localStorage.setItem(FORM_PREF_KEY,JSON.stringify({time:t,durH:+h,durM:+m}));
+    }
+    function loadFormPref(){
+      try{
+        const p=JSON.parse(localStorage.getItem(FORM_PREF_KEY));
+        if(!p) return;
+        if(p.time) document.getElementById('s-time').value=p.time;
+        setSelVal('s-dur-h',p.durH); setSelVal('s-dur-m',p.durM);
+      }catch{}
+    }
+    window.addEventListener('DOMContentLoaded',()=>{initDate();loadFormPref();renderAll();loadReminderUI();checkAutoReminders();});
+
+    // ── Helpers ──
+    function fmtTz(ms,tz,opts){return new Intl.DateTimeFormat('ko-KR',{timeZone:tz,...opts}).format(new Date(ms));}
+    function getTzOff(ms,tz){
+      const p=Object.fromEntries(new Intl.DateTimeFormat('en-US',{timeZone:tz,year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false}).formatToParts(new Date(ms)).map(x=>[x.type,x.value]));
+      return(Date.UTC(+p.year,+p.month-1,+p.day,+p.hour===24?0:+p.hour,+p.minute,+p.second)-ms)/60000;
+    }
+    function isDST(ms,tz){const yr=new Date(ms).getUTCFullYear(),j=getTzOff(Date.UTC(yr,0,15),tz),u=getTzOff(Date.UTC(yr,6,15),tz);if(j===u)return false;return getTzOff(ms,tz)>Math.min(j,u);}
+    function dowOf(ms,tz){return['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].indexOf(new Intl.DateTimeFormat('en-US',{timeZone:tz,weekday:'short'}).format(new Date(ms)));}
+    function wdClass(dow){return dow===0?'wd-sun':dow===6?'wd-sat':'wd-week';}
+    function seoulYM(){return new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Seoul'}).format(new Date()).slice(0,7);}
+    function seoulToday(){return new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Seoul'}).format(new Date());}
+
+    // 한국 날짜 기준 특정 timezone의 현지 날짜 반환 (정오 기준)
+    function koreaDateToTzDate(koreaDateStr,tz){
+      const[y,m,d]=koreaDateStr.split('-').map(Number);
+      const ms=Date.UTC(y,m-1,d,3,0); // 03:00 UTC = 12:00 KST
+      return new Intl.DateTimeFormat('en-CA',{timeZone:tz}).format(new Date(ms));
+    }
+    function getHolidayName(dateStr,tz){return(HOLIDAYS[tz]||{})[dateStr]||null;}
+    // 한국 캘린더 날짜에 해당하는 모든 국가의 공휴일 목록
+    function getHolidaysForKoreaDate(koreaDateStr){
+      return CITIES.map(c=>{
+        const localDate=koreaDateToTzDate(koreaDateStr,c.tz);
+        const name=getHolidayName(localDate,c.tz);
+        return name?{country:`${c.country}(${c.city})`,name}:null;
+      }).filter(Boolean);
+    }
+    // 캘린더 월 전체 공휴일 맵: day → [{country, name}]
+    function buildHolidayMap(year,month){
+      const total=new Date(year,month,0).getDate();
+      const map=new Map();
+      for(let d=1;d<=total;d++){
+        const ds=`${year}-${String(month).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+        const list=getHolidaysForKoreaDate(ds);
+        if(list.length) map.set(d,list);
+      }
+      return map;
+    }
+
+    function getWeekLabel(koreaDate){
+      const[yr,mo,dy]=koreaDate.split('-').map(Number);
+      const d=new Date(Date.UTC(yr,mo-1,dy));
+      const dow=d.getUTCDay(); // 0=Sun,...,6=Sat
+      const daysToMon=dow===0?6:dow-1;
+      const monDay=dy-daysToMon; // day-of-month of this week's Monday
+      if(monDay>=1){
+        return`${yr}년 ${mo}월 ${Math.ceil(monDay/7)}주차`;
+      } else {
+        const prev=new Date(Date.UTC(yr,mo-1,monDay));
+        const pY=prev.getUTCFullYear(),pM=prev.getUTCMonth()+1,pD=prev.getUTCDate();
+        return`${pY}년 ${pM}월 ${Math.ceil(pD/7)}주차`;
+      }
+    }
+
+    function buildCities(koreaMs,durMs){
+      const endMs=koreaMs+durMs;
+      return CITIES.map(({key,code,country,city,tz})=>{
+        const dateStr=fmtTz(koreaMs,tz,{year:'numeric',month:'long',day:'numeric'});
+        const weekday=fmtTz(koreaMs,tz,{weekday:'long'});
+        const dow=dowOf(koreaMs,tz);
+        const startT=fmtTz(koreaMs,tz,{hour:'2-digit',minute:'2-digit',hour12:false});
+        const endT=fmtTz(endMs,tz,{hour:'2-digit',minute:'2-digit',hour12:false});
+        const sd=fmtTz(koreaMs,tz,{year:'numeric',month:'2-digit',day:'2-digit'});
+        const ed=fmtTz(endMs,tz,{year:'numeric',month:'2-digit',day:'2-digit'});
+        const endNote=sd!==ed?`<span style="font-size:.68rem;color:var(--ink-sub);">(${fmtTz(endMs,tz,{month:'numeric',day:'numeric'})})</span>`:'';
+        const localDate=new Intl.DateTimeFormat('en-CA',{timeZone:tz}).format(new Date(koreaMs));
+        return{key,code,country,city,tz,dateStr,weekday,dow,startT,endT,endNote,localDate,dst:isDST(koreaMs,tz)};
+      });
+    }
+
+    function cityCardsHtml(cities){
+      return cities.map(c=>{
+        const holiName=getHolidayName(c.localDate,c.tz);
+        const isHoli=!!holiName;
+        const dateCls=isHoli?'c-date c-holi-text':'c-date';
+        const wdCls=isHoli?`c-weekday c-holi-text`:`c-weekday ${wdClass(c.dow)}`;
+        return`<div class="c-card ${c.key}">
+          <div class="c-code">${c.code} ${c.city}(${c.country})${c.dst?'<span class="c-dst">서머타임</span>':''}</div>
+          <div class="c-divider"></div>
+          <div class="c-date-row">
+            <span class="${dateCls}">${c.dateStr}</span>
+            ${isHoli?`<span class="c-holi-name">${escHtml(holiName)}</span>`:''}
+          </div>
+          <div class="${wdCls}">${c.weekday}</div>
+          <div class="c-time">${c.startT} ~ ${c.endT}${c.endNote}</div>
+        </div>`;
+      }).join('');
+    }
+
+    function videoInfoHtml(e){
+      if(!e.link&&!e.addr&&!e.pw) return '';
+      return`<div class="video-info">
+        <div class="video-info-title">화상 회의 정보</div>
+        <div class="video-info-rows">
+          ${e.link?`<div class="video-info-row"><span class="vi-label">링크</span><span class="vi-value"><a href="${escHtml(e.link)}" target="_blank" rel="noopener">${escHtml(e.link)}</a></span><button class="btn-copy" onclick="copyText('${escAttr(e.link)}')">복사</button></div>`:''}
+          ${e.addr?`<div class="video-info-row"><span class="vi-label">주소/ID</span><span class="vi-value">${escHtml(e.addr)}</span><button class="btn-copy" onclick="copyText('${escAttr(e.addr)}')">복사</button></div>`:''}
+          ${e.pw?`<div class="video-info-row"><span class="vi-label">암호</span><span class="vi-value">${escHtml(e.pw)}</span><button class="btn-copy" onclick="copyText('${escAttr(e.pw)}')">복사</button></div>`:''}
+        </div></div>`;
+    }
+
+    function escHtml(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+    // ── 공휴일 팝업 ──
+    let _holiAnchor=null;
+    function showCalHoliday(event,el){
+      const popup=document.getElementById('hol-popup');
+      if(popup.style.display==='block'&&_holiAnchor===el){
+        popup.style.display='none'; _holiAnchor=null;
+        event.stopPropagation(); return;
+      }
+      const data=JSON.parse(decodeURIComponent(el.dataset.holi));
+      popup.innerHTML=`<div class="hol-popup-title">공휴일</div>`
+        +data.map(h=>`<div class="hol-popup-item"><span class="hol-popup-country">${escHtml(h.country)}</span><span class="hol-popup-name">${escHtml(h.name)}</span></div>`).join('');
+      popup.style.display='block';
+      _holiAnchor=el;
+      const rect=el.getBoundingClientRect();
+      const pw=popup.offsetWidth||200;
+      const left=Math.min(rect.right+4, window.innerWidth-pw-8);
+      popup.style.left=left+'px';
+      popup.style.top=Math.min(rect.top, window.innerHeight-popup.offsetHeight-8)+'px';
+      event.stopPropagation();
+    }
+    document.addEventListener('click',()=>{
+      const p=document.getElementById('hol-popup');
+      if(p){p.style.display='none'; _holiAnchor=null;}
+    });
+    function escAttr(s){return s.replace(/\\/g,'\\\\').replace(/'/g,"\\'");}
+
+    // ── Calendar ──
+    function buildCalHtml(year,month,meetDays,size,todayDay,holidayMap){
+      const firstDow=new Date(year,month-1,1).getDay();
+      const total=new Date(year,month,0).getDate();
+      const gridMap={lg:'cal-grid-lg',md:'cal-grid-md'};
+      const grid=gridMap[size]||'cal-grid-lg';
+      const sz=size==='md'?'md':'lg';
+      const dn=['일','월','화','수','목','금','토'];
+      const hdrs=dn.map((d,i)=>`<div class="cal-hdr ${sz} ${i===0?'h-sun':i===6?'h-sat':''}">${d}</div>`).join('');
+      let cells='';
+      for(let i=0;i<firstDow;i++) cells+=`<div class="cal-day ${sz}"></div>`;
+      for(let d=1;d<=total;d++){
+        const dow=(firstDow+d-1)%7;
+        const meet=meetDays.has(d);
+        const holi=holidayMap?holidayMap.get(d):null;
+        let cls=`cal-day ${sz}`;
+        if(meet) cls+=' d-meet';
+        if(holi) cls+=' d-holiday';
+        if(dow===0) cls+=' d-sun';
+        else if(dow===6) cls+=' d-sat';
+        const holiAttr=holi?` data-holi="${encodeURIComponent(JSON.stringify(holi))}" onclick="showCalHoliday(event,this)"`:' ';
+        cells+=`<div class="${cls}"${holiAttr}>${d}</div>`;
+      }
+      return`<div class="${grid}">${hdrs}${cells}</div>`;
+    }
+
+    // ── localStorage ──
+    const KEY='intlMeetingLog_v2';
+    function load(){try{return JSON.parse(localStorage.getItem(KEY))||[];}catch{return[];}}
+    function save(arr){localStorage.setItem(KEY,JSON.stringify(arr));}
+
+    // ── Build entry ──
+    function buildEntry(id,dateVal,timeVal,durH,durM,link,addr,pw){
+      const[yr,mo,dy]=dateVal.split('-').map(Number);
+      const[hr,mn]=timeVal.split(':').map(Number);
+      const koreaMs=Date.UTC(yr,mo-1,dy,hr-9,mn);
+      const durMs=(durH*60+durM)*60*1000;
+      const durLabel=durH>0?(durM>0?`${durH}시간 ${durM}분`:`${durH}시간`):`${durM}분`;
+      return{id:id??Date.now(),koreaDate:dateVal,koreaTime:timeVal,durLabel,link,addr,pw,cities:buildCities(koreaMs,durMs)};
+    }
+
+    function saveEntry(){
+      const dateVal=document.getElementById('s-date').value;
+      const timeVal=document.getElementById('s-time').value;
+      if(!dateVal||!timeVal){alert('날짜와 시간을 입력해주세요.');return;}
+      const e=buildEntry(null,dateVal,timeVal,+document.getElementById('s-dur-h').value,+document.getElementById('s-dur-m').value,document.getElementById('s-link').value.trim(),document.getElementById('s-addr').value.trim(),document.getElementById('s-pw').value.trim());
+      saveFormPref();
+      const arr=load();arr.unshift(e);save(arr);renderAll();
+      ['s-paste','s-link','s-addr','s-pw'].forEach(id=>document.getElementById(id).value='');
+      document.getElementById('parse-result').innerHTML='';
+      switchTab('schedule');
+    }
+
+    function deleteEntry(id){save(load().filter(e=>e.id!==id));renderAll();}
+    function clearAll(){if(!confirm('모든 일정을 삭제하시겠습니까?'))return;save([]);renderAll();}
+
+    // ── Render all ──
+    function renderAll(){renderSchedule();renderSavedList();renderReminderStatus();}
+
+    // ── Render Tab 1 ──
+    let openMonths = new Set();
+
+    function renderSchedule(){
+      const entries=load();
+      const sidebar=document.getElementById('cal-sidebar');
+      const main=document.getElementById('meeting-main');
+      const curYM=seoulYM();
+
+      if(entries.length===0){
+        sidebar.innerHTML='<div style="padding:8px;font-size:0.82rem;color:var(--ink-sub);">저장된 일정이 없습니다.</div>';
+        main.innerHTML='<div class="meeting-empty"><p>저장된 회의 일정이 없습니다.</p><small>설정 탭에서 일정을 추가해주세요.</small></div>';
+        return;
+      }
+
+      // Group ALL entries for calendar markers
+      const groups={};
+      entries.forEach(e=>{const ym=e.koreaDate.slice(0,7);if(!groups[ym])groups[ym]=[];groups[ym].push(e);});
+
+      // Sidebar — 3 vertical calendars: prev / cur / next
+      function addMonths(ym,n){const[y,m]=ym.split('-').map(Number);const d=new Date(Date.UTC(y,m-1+n,1));return`${d.getUTCFullYear()}-${String(d.getUTCMonth()+1).padStart(2,'0')}`;}
+      const prevYM=addMonths(curYM,-1);
+      const nextYM=addMonths(curYM,1);
+      sidebar.innerHTML=[prevYM,curYM,nextYM].map(ym=>{
+        const[y,m]=ym.split('-').map(Number);
+        const isCur=ym===curYM;
+        const label=`${y}년 ${m}월`;
+        const meetDays=new Set((groups[ym]||[]).map(e=>+e.koreaDate.split('-')[2]));
+        const holidayMap=buildHolidayMap(y,m);
+        const cal=buildCalHtml(y,m,meetDays,isCur?'lg':'md',0,holidayMap);
+        return`<div class="cal-month-col${isCur?' is-cur':''}">
+          <div class="cal-month-hdr" onclick="toggleMonth('${ym}')">
+            <span class="cal-menu-icon">≡</span>
+            <span class="cal-hdr-label">${label}</span>
+          </div>
+          ${cal}
+        </div>`;
+      }).join('');
+
+      // Future entries only (today and later), flat ascending order
+      const today=seoulToday();
+      const futureEntries=entries.filter(e=>e.koreaDate>=today).sort((a,b)=>a.koreaDate.localeCompare(b.koreaDate));
+
+      if(futureEntries.length===0){
+        main.innerHTML='<div class="meeting-empty"><p>예정된 회의 일정이 없습니다.</p><small>설정 탭에서 일정을 추가해주세요.</small></div>';
+        return;
+      }
+
+      main.innerHTML = futureEntries.map(e=>`<div class="meeting-item">
+        <div class="meeting-item-header">
+          <div class="meeting-week">${getWeekLabel(e.koreaDate)}</div>
+        </div>
+        <div class="meeting-body">
+          <div class="country-grid">${cityCardsHtml(e.cities)}</div>
+          ${videoInfoHtml(e)}
+        </div>
+      </div>`).join('');
+    }
+
+    function toggleMonth(ym){
+      if(openMonths.has(ym)) openMonths.delete(ym); else openMonths.add(ym);
+      renderSchedule();
+    }
+
+    // ── Render saved list (settings) ──
+    function renderSavedList(){
+      const entries=load().slice().sort((a,b)=>b.koreaDate.localeCompare(a.koreaDate)||b.koreaTime.localeCompare(a.koreaTime));
+      const el=document.getElementById('saved-list');
+      if(entries.length===0){el.innerHTML='<div class="saved-empty">저장된 일정이 없습니다.</div>';return;}
+      const nowSeoul=new Intl.DateTimeFormat('sv',{timeZone:'Asia/Seoul',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}).format(new Date()).replace(' ','T');
+      el.innerHTML=entries.map(e=>`
+        <div class="saved-item${(e.koreaDate+'T'+e.koreaTime)<nowSeoul?' is-past':''}">
+          <div class="saved-item-info">
+            <div class="saved-item-title">${e.koreaDate} ${e.koreaTime}</div>
+            <div class="saved-item-sub">${e.durLabel}${e.link?' · 링크 있음':''}${e.pw?' · 비번 있음':''}</div>
+            ${e.link?`<div class="saved-item-link">${escHtml(e.link)}</div>`:''}
+          </div>
+          <div class="saved-item-btns">
+            <button class="btn-edit" onclick="openEditModal(${e.id})">수정</button>
+            <button class="btn-del"  onclick="deleteEntry(${e.id})">삭제</button>
+          </div>
+        </div>`).join('');
+    }
+
+    // ── Edit modal ──
+    let editingId=null;
+    function openEditModal(id){
+      const entry=load().find(e=>e.id===id); if(!entry)return;
+      editingId=id;
+      document.getElementById('m-date').value=entry.koreaDate;
+      document.getElementById('m-time').value=entry.koreaTime;
+      document.getElementById('m-link').value=entry.link||'';
+      document.getElementById('m-addr').value=entry.addr||'';
+      document.getElementById('m-pw').value=entry.pw||'';
+      document.getElementById('m-paste').value='';
+      document.getElementById('m-parse-result').innerHTML='';
+      const[defH,defM]=parseDurLabel(entry.durLabel);
+      setSelVal('m-dur-h',defH); setSelVal('m-dur-m',defM);
+      document.getElementById('modal-overlay').style.display='flex';
+      document.body.style.overflow='hidden';
+    }
+    function parseDurLabel(l){return[+(l.match(/(\d+)시간/)||[,0])[1],+(l.match(/(\d+)분/)||[,0])[1]];}
+    function setSelVal(id,val){const s=document.getElementById(id);for(let i=0;i<s.options.length;i++){if(+s.options[i].value===+val){s.selectedIndex=i;break;}}}
+    function closeModal(){document.getElementById('modal-overlay').style.display='none';document.body.style.overflow='';editingId=null;}
+    function closeModalOutside(e){if(e.target===document.getElementById('modal-overlay'))closeModal();}
+    function saveEdit(){
+      const dateVal=document.getElementById('m-date').value,timeVal=document.getElementById('m-time').value;
+      if(!dateVal||!timeVal){alert('날짜와 시간을 입력해주세요.');return;}
+      const updated=buildEntry(editingId,dateVal,timeVal,+document.getElementById('m-dur-h').value,+document.getElementById('m-dur-m').value,document.getElementById('m-link').value.trim(),document.getElementById('m-addr').value.trim(),document.getElementById('m-pw').value.trim());
+      save(load().map(e=>e.id===editingId?updated:e));
+      renderAll(); closeModal();
+    }
+
+    // ── Tab switch ──
+    function switchTab(name){
+      document.querySelectorAll('.tab-btn').forEach((b,i)=>b.classList.toggle('active',['schedule','settings'][i]===name));
+      document.querySelectorAll('.tab-panel').forEach(p=>p.classList.toggle('active',p.id===`tab-${name}`));
+    }
+
+    // ── Settings inner tab switch ──
+    function switchSettingsTab(name){
+      document.querySelectorAll('.settings-nav-btn').forEach((b,i)=>b.classList.toggle('active',['meetings','reminder'][i]===name));
+      document.querySelectorAll('.settings-tab-panel').forEach(p=>p.classList.toggle('active',p.id===`stab-${name}`));
+    }
+
+    // ── Paste parse ──
+    function parsePaste(pId,lId,aId,pwId,rId){
+      const t=document.getElementById(pId).value;
+      const link=(t.match(/https?:\/\/[^\s]+/)||[''])[0];
+      const addr=(t.match(/(?:모임\s*ID|Meeting\s*ID|회의\s*ID|ID)\s*[:：]\s*(.+)/i)||[,''])[1].trim();
+      const pw=(t.match(/(?:암호|비밀번호|Passcode|Password)\s*[:：]\s*(\S+)/i)||[,''])[1].trim();
+      document.getElementById(lId).value=link;
+      document.getElementById(aId).value=addr;
+      document.getElementById(pwId).value=pw;
+      document.getElementById(rId).innerHTML=[{label:'링크',val:link},{label:'ID',val:addr},{label:'암호',val:pw}]
+        .map(({label,val})=>`<span class="parse-tag ${val?'found':'missing'}">${val?'✓':'–'} ${label}</span>`).join('');
+    }
+
+    // ── Password toggle ──
+    function togglePw(inputId,btn){
+      const inp=document.getElementById(inputId);
+      if(inp.type==='password'){inp.type='text';btn.textContent='숨김';}
+      else{inp.type='password';btn.textContent='표시';}
+    }
+
+    // ── Copy ──
+    function copyText(t){navigator.clipboard.writeText(t).catch(()=>{const ta=document.createElement('textarea');ta.value=t;ta.style.cssText='position:fixed;opacity:0';document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);});}
+
+    // ══ Reminder Email ══
+    const RKEY='reminderSettings_v1';
+    const SENT_LOG_KEY='reminderSentLog_v1';
+    function loadRS(){try{return JSON.parse(localStorage.getItem(RKEY))||{days:5,contacts:[]};}catch{return{days:5,contacts:[]};}}
+    function saveRS(rs){localStorage.setItem(RKEY,JSON.stringify(rs));}
+    function loadSentLog(){try{return JSON.parse(localStorage.getItem(SENT_LOG_KEY))||{};}catch{return{};}}
+    function saveSentLog(log){localStorage.setItem(SENT_LOG_KEY,JSON.stringify(log));}
+    function markSent(id,type){const log=loadSentLog();log[id]={sentAt:new Date().toISOString(),type};saveSentLog(log);}
+
+    function meetingMs(e){return new Date(e.koreaDate+'T'+e.koreaTime+':00+09:00').getTime();}
+
+    function loadReminderUI(){
+      const rs=loadRS();
+      document.getElementById('remind-days').value=rs.days;
+      renderContacts(); renderReminderStatus();
+    }
+
+    function saveReminderSettings(){
+      const rs=loadRS();
+      rs.days=+document.getElementById('remind-days').value||5;
+      saveRS(rs); renderReminderStatus();
+    }
+
+    // Address book
+    function addContact(){
+      const name=document.getElementById('c-name').value.trim();
+      const email=document.getElementById('c-email').value.trim();
+      if(!email||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){alert('올바른 이메일 주소를 입력해주세요.');return;}
+      const rs=loadRS();
+      rs.contacts.push({id:Date.now(),name,email});
+      saveRS(rs); renderContacts(); renderReminderStatus();
+      document.getElementById('c-name').value=''; document.getElementById('c-email').value='';
+    }
+
+    function deleteContact(id){
+      const rs=loadRS(); rs.contacts=rs.contacts.filter(c=>c.id!==id);
+      saveRS(rs); renderContacts(); renderReminderStatus();
+    }
+
+    function renderContacts(){
+      const rs=loadRS();
+      const el=document.getElementById('contact-list');
+      if(rs.contacts.length===0){el.innerHTML='<div class="contact-empty">등록된 주소가 없습니다.</div>';return;}
+      el.innerHTML=rs.contacts.map(c=>`
+        <div class="contact-item">
+          <div class="contact-info">
+            ${c.name?`<div class="contact-name">${escHtml(c.name)}</div>`:''}
+            <div class="contact-email">${escHtml(c.email)}</div>
+          </div>
+          <div class="contact-btns">
+            <button class="btn-del" onclick="deleteContact(${c.id})">삭제</button>
+          </div>
+        </div>`).join('');
+    }
+
+    // Reminder status — 예정 회의만, 날짜+시간 기준
+    function renderReminderStatus(){
+      const rs=loadRS();
+      const el=document.getElementById('reminder-status');
+      if(rs.contacts.length===0){
+        el.innerHTML='<div class="reminder-no-contacts">주소록을 먼저 등록해주세요.</div>'; return;
+      }
+      const entries=load();
+      const nowMs=Date.now();
+      const days=rs.days||5;
+      const windowMs=days*24*3600*1000;
+      const sentLog=loadSentLog();
+
+      const upcoming=entries
+        .filter(e=>meetingMs(e)>nowMs)
+        .sort((a,b)=>meetingMs(a)-meetingMs(b));
+
+      if(upcoming.length===0){
+        el.innerHTML='<div class="reminder-none">예정된 회의가 없습니다.</div>'; return;
+      }
+
+      el.innerHTML=upcoming.map(e=>{
+        const mMs=meetingMs(e);
+        const diffMs=mMs-nowMs;
+        const diffH=Math.ceil(diffMs/3600000);
+        const diffD=Math.ceil(diffMs/86400000);
+        const urgent=diffD<=2;
+        const inWindow=diffMs<=windowMs;
+        const sent=sentLog[e.id];
+
+        const dueText=diffD===0?'오늘':diffD===1?'내일':diffD+'일 후';
+
+        let badge='';
+        if(sent){
+          badge=sent.type==='manual'
+            ?'<span class="reminder-badge badge-manual">수동 발송 완료</span>'
+            :'<span class="reminder-badge badge-auto">자동 발송 완료</span>';
+        } else if(inWindow){
+          badge='<span class="reminder-badge badge-pending">발송 예정 ('+diffH+'시간 후)</span>';
+        }
+
+        return`<div class="reminder-item">
+          <div class="reminder-item-info">
+            <div class="reminder-item-date">${e.koreaDate} ${e.koreaTime}</div>
+            <div class="reminder-item-due ${urgent?'urgent':''}">${dueText} · ${e.durLabel}</div>
+            ${badge}
+          </div>
+          <button class="btn-send-mail" onclick="sendReminder(${e.id})">메일 발송</button>
+        </div>`;
+      }).join('');
+    }
+
+    // 메일 본문 생성 (자동/수동 공통)
+    function buildMailto(entry){
+      const rs=loadRS();
+      const to=rs.contacts.map(c=>c.email).join(',');
+      const kr=entry.cities.find(c=>c.key==='kr');
+      const vn=entry.cities.find(c=>c.key==='vn');
+      const kz=entry.cities.find(c=>c.key==='kz');
+      const us=entry.cities.find(c=>c.key==='us');
+      const subject=`[리마인드] 검사지원본부 주간회의 - ${entry.koreaDate}`;
+      const body=[
+        '안녕하세요,','',`다음 주간회의 일정을 안내드립니다.`,'','[ 회의 일정 ]',
+        `한국 (서울)       : ${kr.dateStr} (${kr.weekday}) ${kr.startT} ~ ${kr.endT}`,
+        `베트남 (하노이)   : ${vn.dateStr} (${vn.weekday}) ${vn.startT} ~ ${vn.endT}`,
+        `카자흐스탄 (알마티): ${kz.dateStr} (${kz.weekday}) ${kz.startT} ~ ${kz.endT}`,
+        `미국 (LA)        : ${us.dateStr} (${us.weekday}) ${us.startT} ~ ${us.endT}${us.dst?' [서머타임]':''}`,
+        '',entry.link||entry.addr||entry.pw?'[ 화상 회의 정보 ]':'',
+        entry.link?`링크    : ${entry.link}`:'',
+        entry.addr?`ID      : ${entry.addr}`:'',
+        entry.pw  ?`암호    : ${entry.pw}`:'',
+        '','감사합니다.',
+      ].filter(l=>l!==undefined).join('\n');
+      return`mailto:${encodeURIComponent(to)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    }
+
+    // 수동 발송
+    function sendReminder(id){
+      const entry=load().find(e=>e.id===id); if(!entry)return;
+      const rs=loadRS();
+      if(rs.contacts.length===0){alert('주소록을 먼저 등록해주세요.');return;}
+      window.location.href=buildMailto(entry);
+      markSent(id,'manual');
+      setTimeout(renderReminderStatus,300);
+    }
+
+    // 자동 발송 체크 — 페이지 로드 시 실행
+    function checkAutoReminders(){
+      const rs=loadRS();
+      if(!rs.contacts||rs.contacts.length===0) return;
+      const entries=load();
+      const nowMs=Date.now();
+      const windowMs=(rs.days||5)*24*3600*1000;
+      const sentLog=loadSentLog();
+      for(const e of entries.sort((a,b)=>meetingMs(a)-meetingMs(b))){
+        const mMs=meetingMs(e);
+        if(mMs<=nowMs) continue;                     // 지난 회의
+        if(sentLog[e.id]) continue;                  // 이미 발송(수동 포함)
+        if(mMs-nowMs<=windowMs){
+          window.location.href=buildMailto(e);
+          markSent(e.id,'auto');
+          setTimeout(renderReminderStatus,300);
+          break; // 한 번에 하나씩
+        }
+      }
+    }
+  </script>
+</body>
+</html>
