@@ -793,7 +793,7 @@
           <select id="m-time-ampm"></select>
           <select id="m-time-hour"></select><span class="tp-sep">시</span>
           <select id="m-time-min"></select><span class="tp-sep">분</span>
-          <input type="hidden" id="m-time" />
+          <input type="hidden" id="m-time" value="13:30" />
         </div>
       </div>
       <div class="form-row">
@@ -1042,16 +1042,15 @@
     }
     const FORM_PREF_KEY='meetingFormPref_v1';
     function saveFormPref(){
-      const t=document.getElementById('s-time').value;
       const h=document.getElementById('s-dur-h').value;
       const m=document.getElementById('s-dur-m').value;
-      if(t) localStorage.setItem(FORM_PREF_KEY,JSON.stringify({time:t,durH:+h,durM:+m}));
+      localStorage.setItem(FORM_PREF_KEY,JSON.stringify({durH:+h,durM:+m}));
     }
     function loadFormPref(){
       try{
+        setTimePicker('s','13:30');
         const p=JSON.parse(localStorage.getItem(FORM_PREF_KEY));
         if(!p) return;
-        if(p.time) setTimePicker('s', p.time);
         setDurMinutes('s', (+p.durH||0)*60 + (+p.durM||0));
       }catch{}
     }
