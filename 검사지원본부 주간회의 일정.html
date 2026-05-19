@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>검사지원본부 주간회의 일정</title>
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <style>
     :root {
       --bg: #f0f2f5;
@@ -434,6 +435,41 @@
       .cal-sidebar { display: none; }
       .meeting-main { padding: 16px; }
     }
+
+    /* SMTP grid */
+    .smtp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    @media (max-width: 600px) { .smtp-grid { grid-template-columns: 1fr; } }
+    .smtp-ssl-info { font-size: 0.74rem; font-weight: 600; margin-top: 6px; min-height: 16px; }
+
+    /* Password lock overlay */
+    .pw-lock-overlay {
+      position: fixed; inset: 0; background: rgba(15,15,25,0.62);
+      z-index: 1000; display: flex; align-items: center; justify-content: center;
+      backdrop-filter: blur(5px);
+    }
+    .pw-lock-box {
+      background: var(--card); border-radius: var(--radius);
+      box-shadow: 0 24px 64px rgba(0,0,0,0.32);
+      width: min(360px, 90%); padding: 28px 24px;
+    }
+    .pw-lock-title { font-size: 1rem; font-weight: 700; margin-bottom: 4px; }
+    .pw-lock-sub   { font-size: 0.82rem; color: var(--ink-sub); margin-bottom: 16px; }
+    .pw-lock-input-wrap { position: relative; margin-bottom: 8px; }
+    .pw-lock-input-wrap input {
+      width: 100%; height: 40px; padding: 0 52px 0 12px;
+      border: 1.5px solid var(--border); border-radius: 8px;
+      font-size: 0.92rem; font-family: inherit; color: var(--ink);
+      background: #fafbfc; transition: border-color .15s;
+    }
+    .pw-lock-input-wrap input:focus { outline: none; border-color: var(--accent); background: #fff; }
+    .pw-lock-input-wrap .btn-toggle-pw { right: 10px; }
+    .pw-lock-btn {
+      width: 100%; height: 40px; background: var(--accent); color: #fff;
+      border: none; border-radius: 8px; font-size: 0.92rem; font-weight: 600;
+      font-family: inherit; cursor: pointer; margin-top: 4px;
+    }
+    .pw-lock-btn:hover { background: #2f4ac0; }
+    .pw-lock-msg { font-size: 0.76rem; color: var(--vn); min-height: 18px; margin-bottom: 6px; }
   </style>
 </head>
 <body>
@@ -464,6 +500,7 @@
         <nav class="settings-nav">
           <button class="settings-nav-btn active" onclick="switchSettingsTab('meetings')">회의 일정</button>
           <button class="settings-nav-btn"        onclick="switchSettingsTab('reminder')">리마인더 메일 발송</button>
+          <button class="settings-nav-btn"        onclick="switchSettingsTab('password')">비밀번호 설정</button>
         </nav>
 
         <!-- Right content -->
@@ -508,14 +545,22 @@
                     </div>
                   </div>
                 </div>
-                <!-- 하단 전체 너비: 링크·주소·암호 -->
+                <!-- 하단 전체 너비: 회의실·링크·회의 ID·암호 -->
                 <div class="add-form-bottom">
+                  <div class="form-row">
+                    <label for="s-room">회의실</label>
+                    <select id="s-room">
+                      <option value="1614-1 대회의실">1614-1 대회의실</option>
+                      <option value="1613 소회의실">1613 소회의실</option>
+                      <option value="1614-2 대회의실">1614-2 대회의실</option>
+                    </select>
+                  </div>
                   <div class="form-row">
                     <label for="s-link">링크</label>
                     <input type="url" id="s-link" placeholder="https://..." />
                   </div>
                   <div class="form-row">
-                    <label for="s-addr">주소 / 회의 ID</label>
+                    <label for="s-addr">회의 ID</label>
                     <input type="text" id="s-addr" placeholder="465 736 402 261 86" />
                   </div>
                   <div class="form-row">
@@ -567,6 +612,81 @@
                 <div id="reminder-status"></div>
               </div>
             </div>
+
+            <!-- SMTP 설정 -->
+            <div style="margin-top:20px;">
+              <div class="settings-panel">
+                <div class="sp-header">SMTP 설정</div>
+                <div style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:10px;margin-bottom:8px;">
+                  <div class="form-row">
+                    <label for="smtp-server">SMTP 서버</label>
+                    <input type="text" id="smtp-server" placeholder="smtp.office365.com" />
+                  </div>
+                  <div class="form-row">
+                    <label for="smtp-port">포트</label>
+                    <input type="number" id="smtp-port" value="587" />
+                  </div>
+                  <div class="form-row">
+                    <label for="smtp-ssl">보안</label>
+                    <select id="smtp-ssl" onchange="onSslChange()">
+                      <option value="STARTTLS">STARTTLS</option>
+                      <option value="SSL">SSL/TLS</option>
+                      <option value="NONE">없음</option>
+                    </select>
+                  </div>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                  <div class="form-row">
+                    <label for="smtp-user">계정</label>
+                    <input type="email" id="smtp-user" placeholder="클릭 시 초기화" onclick="clearFieldOnce(this)" autocomplete="off" />
+                  </div>
+                  <div class="form-row">
+                    <label for="smtp-pass">암호</label>
+                    <input type="password" id="smtp-pass" placeholder="클릭 시 초기화" onclick="clearFieldOnce(this)" autocomplete="off" />
+                  </div>
+                </div>
+                <div id="smtp-msg" style="font-size:0.78rem;margin-top:6px;min-height:18px;"></div>
+                <div style="margin-top:8px;display:flex;gap:8px;">
+                  <button class="btn-modal-cancel" style="flex:1;height:36px;" onclick="testSMTPConnection()">연결 테스트</button>
+                  <button class="btn-modal-save"   style="flex:2;height:36px;" onclick="saveSMTPSettings()">저장</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ─ 비밀번호 설정 탭 ─ -->
+          <div class="settings-tab-panel" id="stab-password">
+            <div style="max-width:420px;">
+              <div class="settings-panel">
+                <div class="sp-header">비밀번호 설정</div>
+                <p style="font-size:0.78rem;color:var(--ink-sub);margin-bottom:10px;">세 칸 모두 공란으로 저장하면 비밀번호가 해제됩니다.</p>
+                <div class="form-row">
+                  <label for="pw-old">기존 비밀번호</label>
+                  <div class="pw-wrap">
+                    <input type="password" id="pw-old" placeholder="기존 비밀번호 입력" autocomplete="off" />
+                    <button class="btn-toggle-pw" type="button" onclick="togglePw('pw-old',this)">표시</button>
+                  </div>
+                </div>
+                <div class="form-row">
+                  <label for="pw-new">변경 비밀번호</label>
+                  <div class="pw-wrap">
+                    <input type="password" id="pw-new" placeholder="새 비밀번호" autocomplete="off" />
+                    <button class="btn-toggle-pw" type="button" onclick="togglePw('pw-new',this)">표시</button>
+                  </div>
+                </div>
+                <div class="form-row">
+                  <label for="pw-confirm">비밀번호 재확인</label>
+                  <div class="pw-wrap">
+                    <input type="password" id="pw-confirm" placeholder="새 비밀번호 재입력" autocomplete="off" />
+                    <button class="btn-toggle-pw" type="button" onclick="togglePw('pw-confirm',this)">표시</button>
+                  </div>
+                </div>
+                <div id="pw-change-msg" style="font-size:0.78rem;margin-top:6px;min-height:18px;"></div>
+                <div style="margin-top:8px;">
+                  <button class="btn-modal-save" style="width:100%;height:36px;" onclick="saveAppPassword()">저장</button>
+                </div>
+              </div>
+            </div>
           </div>
 
         </div><!-- /settings-content -->
@@ -576,6 +696,21 @@
 
   <!-- 공휴일 팝업 -->
   <div class="hol-popup" id="hol-popup"></div>
+
+  <!-- 비밀번호 잠금 오버레이 -->
+  <div class="pw-lock-overlay" id="pw-lock-overlay" style="display:none;">
+    <div class="pw-lock-box">
+      <div class="pw-lock-title">검사지원본부 주간회의 일정</div>
+      <div class="pw-lock-sub">비밀번호를 입력하세요.</div>
+      <div class="pw-lock-input-wrap">
+        <input type="password" id="pw-lock-input" placeholder="비밀번호" autocomplete="off"
+               onkeydown="if(event.key==='Enter')submitLockPw()" />
+        <button class="btn-toggle-pw" type="button" onclick="togglePw('pw-lock-input',this)">표시</button>
+      </div>
+      <div class="pw-lock-msg" id="pw-lock-msg"></div>
+      <button class="pw-lock-btn" onclick="submitLockPw()">확인</button>
+    </div>
+  </div>
 
   <!-- ══ Edit Modal ══ -->
   <div class="modal-overlay" id="modal-overlay" style="display:none;" onclick="closeModalOutside(event)">
@@ -608,11 +743,19 @@
         <div class="parse-result" id="m-parse-result"></div>
       </div>
       <div class="form-row">
+        <label for="m-room">회의실</label>
+        <select id="m-room">
+          <option value="1614-1 대회의실">1614-1 대회의실</option>
+          <option value="1613 소회의실">1613 소회의실</option>
+          <option value="1614-2 대회의실">1614-2 대회의실</option>
+        </select>
+      </div>
+      <div class="form-row">
         <label for="m-link">링크</label>
         <input type="url" id="m-link" />
       </div>
       <div class="form-row">
-        <label for="m-addr">주소 / 회의 ID</label>
+        <label for="m-addr">회의 ID</label>
         <input type="text" id="m-addr" />
       </div>
       <div class="form-row">
@@ -724,7 +867,7 @@
         setSelVal('s-dur-h',p.durH); setSelVal('s-dur-m',p.durM);
       }catch{}
     }
-    window.addEventListener('DOMContentLoaded',()=>{initDate();loadFormPref();renderAll();loadReminderUI();checkAutoReminders();});
+    window.addEventListener('DOMContentLoaded',()=>{initDate();loadFormPref();renderAll();loadReminderUI();loadSMTPUI();checkAutoReminders();});
 
     // ── Helpers ──
     function fmtTz(ms,tz,opts){return new Intl.DateTimeFormat('ko-KR',{timeZone:tz,...opts}).format(new Date(ms));}
@@ -821,7 +964,7 @@
         <div class="video-info-title">화상 회의 정보</div>
         <div class="video-info-rows">
           ${e.link?`<div class="video-info-row"><span class="vi-label">링크</span><span class="vi-value"><a href="${escHtml(e.link)}" target="_blank" rel="noopener">${escHtml(e.link)}</a></span><button class="btn-copy" onclick="copyText('${escAttr(e.link)}')">복사</button></div>`:''}
-          ${e.addr?`<div class="video-info-row"><span class="vi-label">주소/ID</span><span class="vi-value">${escHtml(e.addr)}</span><button class="btn-copy" onclick="copyText('${escAttr(e.addr)}')">복사</button></div>`:''}
+          ${e.addr?`<div class="video-info-row"><span class="vi-label">회의 ID</span><span class="vi-value">${escHtml(e.addr)}</span><button class="btn-copy" onclick="copyText('${escAttr(e.addr)}')">복사</button></div>`:''}
           ${e.pw?`<div class="video-info-row"><span class="vi-label">암호</span><span class="vi-value">${escHtml(e.pw)}</span><button class="btn-copy" onclick="copyText('${escAttr(e.pw)}')">복사</button></div>`:''}
         </div></div>`;
     }
@@ -886,20 +1029,20 @@
     function save(arr){localStorage.setItem(KEY,JSON.stringify(arr));}
 
     // ── Build entry ──
-    function buildEntry(id,dateVal,timeVal,durH,durM,link,addr,pw){
+    function buildEntry(id,dateVal,timeVal,durH,durM,link,addr,pw,room){
       const[yr,mo,dy]=dateVal.split('-').map(Number);
       const[hr,mn]=timeVal.split(':').map(Number);
       const koreaMs=Date.UTC(yr,mo-1,dy,hr-9,mn);
       const durMs=(durH*60+durM)*60*1000;
       const durLabel=durH>0?(durM>0?`${durH}시간 ${durM}분`:`${durH}시간`):`${durM}분`;
-      return{id:id??Date.now(),koreaDate:dateVal,koreaTime:timeVal,durLabel,link,addr,pw,cities:buildCities(koreaMs,durMs)};
+      return{id:id??Date.now(),koreaDate:dateVal,koreaTime:timeVal,durLabel,link,addr,pw,room:room||'1614-1 대회의실',cities:buildCities(koreaMs,durMs)};
     }
 
     function saveEntry(){
       const dateVal=document.getElementById('s-date').value;
       const timeVal=document.getElementById('s-time').value;
       if(!dateVal||!timeVal){alert('날짜와 시간을 입력해주세요.');return;}
-      const e=buildEntry(null,dateVal,timeVal,+document.getElementById('s-dur-h').value,+document.getElementById('s-dur-m').value,document.getElementById('s-link').value.trim(),document.getElementById('s-addr').value.trim(),document.getElementById('s-pw').value.trim());
+      const e=buildEntry(null,dateVal,timeVal,+document.getElementById('s-dur-h').value,+document.getElementById('s-dur-m').value,document.getElementById('s-link').value.trim(),document.getElementById('s-addr').value.trim(),document.getElementById('s-pw').value.trim(),document.getElementById('s-room').value);
       saveFormPref();
       const arr=load();arr.unshift(e);save(arr);renderAll();
       ['s-paste','s-link','s-addr','s-pw'].forEach(id=>document.getElementById(id).value='');
@@ -961,9 +1104,10 @@
         return;
       }
 
-      main.innerHTML = futureEntries.map(e=>`<div class="meeting-item">
+      main.innerHTML = futureEntries.map(e=>`<div class="meeting-item" data-entry-id="${e.id}">
         <div class="meeting-item-header">
           <div class="meeting-week">${getWeekLabel(e.koreaDate)}</div>
+          ${e.room?`<div class="meeting-room" style="font-size:0.85rem;color:var(--ink-sub);margin-top:4px;font-weight:500;">본사 ${escHtml(e.room)} 외 각 해외 법인 회의실</div>`:''}
         </div>
         <div class="meeting-body">
           <div class="country-grid">${cityCardsHtml(e.cities)}</div>
@@ -1007,6 +1151,7 @@
       document.getElementById('m-link').value=entry.link||'';
       document.getElementById('m-addr').value=entry.addr||'';
       document.getElementById('m-pw').value=entry.pw||'';
+      document.getElementById('m-room').value=entry.room||'1614-1 대회의실';
       document.getElementById('m-paste').value='';
       document.getElementById('m-parse-result').innerHTML='';
       const[defH,defM]=parseDurLabel(entry.durLabel);
@@ -1021,20 +1166,33 @@
     function saveEdit(){
       const dateVal=document.getElementById('m-date').value,timeVal=document.getElementById('m-time').value;
       if(!dateVal||!timeVal){alert('날짜와 시간을 입력해주세요.');return;}
-      const updated=buildEntry(editingId,dateVal,timeVal,+document.getElementById('m-dur-h').value,+document.getElementById('m-dur-m').value,document.getElementById('m-link').value.trim(),document.getElementById('m-addr').value.trim(),document.getElementById('m-pw').value.trim());
+      const updated=buildEntry(editingId,dateVal,timeVal,+document.getElementById('m-dur-h').value,+document.getElementById('m-dur-m').value,document.getElementById('m-link').value.trim(),document.getElementById('m-addr').value.trim(),document.getElementById('m-pw').value.trim(),document.getElementById('m-room').value);
       save(load().map(e=>e.id===editingId?updated:e));
       renderAll(); closeModal();
     }
 
     // ── Tab switch ──
     function switchTab(name){
+      if(name==='settings' && getStoredPw()){
+        _pendingTab=name;
+        const overlay=document.getElementById('pw-lock-overlay');
+        overlay.style.display='flex';
+        document.getElementById('pw-lock-msg').textContent='';
+        document.getElementById('pw-lock-input').value='';
+        setTimeout(()=>document.getElementById('pw-lock-input').focus(),100);
+        return;
+      }
+      _applyTab(name);
+    }
+    let _pendingTab=null;
+    function _applyTab(name){
       document.querySelectorAll('.tab-btn').forEach((b,i)=>b.classList.toggle('active',['schedule','settings'][i]===name));
       document.querySelectorAll('.tab-panel').forEach(p=>p.classList.toggle('active',p.id===`tab-${name}`));
     }
 
     // ── Settings inner tab switch ──
     function switchSettingsTab(name){
-      document.querySelectorAll('.settings-nav-btn').forEach((b,i)=>b.classList.toggle('active',['meetings','reminder'][i]===name));
+      document.querySelectorAll('.settings-nav-btn').forEach((b,i)=>b.classList.toggle('active',['meetings','reminder','password'][i]===name));
       document.querySelectorAll('.settings-tab-panel').forEach(p=>p.classList.toggle('active',p.id===`stab-${name}`));
     }
 
@@ -1168,56 +1326,311 @@
       }).join('');
     }
 
-    // 메일 본문 생성 (자동/수동 공통)
-    function buildMailto(entry){
-      const rs=loadRS();
-      const to=rs.contacts.map(c=>c.email).join(',');
+    const SMTP_API = 'https://smtp-api-rust.vercel.app/api/send';
+
+    // 회의 카드를 화면 밖에 임시 렌더 후 PNG 캡처 (data URL 반환)
+    async function captureMeetingCardImage(entry){
+      const wrap=document.createElement('div');
+      wrap.style.cssText='position:fixed;left:-99999px;top:0;width:980px;background:#ffffff;padding:24px;font-family:"Malgun Gothic","Apple SD Gothic Neo",Arial,sans-serif;';
+      wrap.innerHTML=`<div class="meeting-item" style="background:#fff;border:1px solid #e2e6ea;border-radius:12px;padding:20px;">
+        <div class="meeting-item-header" style="margin-bottom:14px;">
+          <div class="meeting-week" style="font-size:1.15rem;font-weight:700;color:#1a1a2e;">${getWeekLabel(entry.koreaDate)}</div>
+          ${entry.room?`<div style="font-size:0.92rem;color:#6b7280;margin-top:4px;font-weight:500;">본사 ${escHtml(entry.room)} 외 각 해외 법인 회의실</div>`:''}
+        </div>
+        <div class="country-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;">${cityCardsHtml(entry.cities)}</div>
+      </div>`;
+      document.body.appendChild(wrap);
+      try{
+        // 폰트 로드 안정화
+        if(document.fonts&&document.fonts.ready) await document.fonts.ready;
+        const canvas=await html2canvas(wrap,{scale:2,backgroundColor:'#ffffff',useCORS:true,logging:false});
+        return canvas.toDataURL('image/png');
+      } finally {
+        wrap.remove();
+      }
+    }
+
+    // 메일 제목·본문 생성 (HTML + 텍스트 fallback)
+    async function buildMailContent(entry){
+      const subject=`${getWeekLabel(entry.koreaDate)} 주간회의 공지`;
+
+      let imgDataUrl='';
+      try { imgDataUrl=await captureMeetingCardImage(entry); }
+      catch(err){ console.error('[capture image failed]',err); }
+
+      const infoRowsHtml=[
+        entry.link?`<tr><td style="padding:4px 12px 4px 0;color:#6b7280;font-weight:600;white-space:nowrap;">링크</td><td style="padding:4px 0;"><a href="${escHtml(entry.link)}" style="color:#3b5bdb;word-break:break-all;">${escHtml(entry.link)}</a></td></tr>`:'',
+        entry.addr?`<tr><td style="padding:4px 12px 4px 0;color:#6b7280;font-weight:600;white-space:nowrap;">회의 ID</td><td style="padding:4px 0;color:#1a1a2e;">${escHtml(entry.addr)}</td></tr>`:'',
+        entry.pw?`<tr><td style="padding:4px 12px 4px 0;color:#6b7280;font-weight:600;white-space:nowrap;">암호</td><td style="padding:4px 0;color:#1a1a2e;">${escHtml(entry.pw)}</td></tr>`:'',
+      ].filter(Boolean).join('');
+
+      const html=`<!DOCTYPE html><html><body style="margin:0;padding:20px;background:#f0f2f5;font-family:'Malgun Gothic','Apple SD Gothic Neo',Arial,sans-serif;color:#1a1a2e;">
+        <div style="max-width:720px;margin:0 auto;background:#ffffff;padding:24px;border-radius:12px;">
+          <p style="margin:0 0 8px 0;">안녕하세요,</p>
+          <p style="margin:0 0 16px 0;">다음 주간회의 일정을 안내드립니다.</p>
+          ${imgDataUrl?`<div style="margin:12px 0;"><img src="${imgDataUrl}" alt="회의 일정" style="max-width:100%;height:auto;border:1px solid #e2e6ea;border-radius:8px;display:block;" /></div>`:''}
+          ${infoRowsHtml?`<div style="margin-top:18px;padding:14px 16px;background:#f8f9fb;border:1px solid #e2e6ea;border-radius:8px;">
+            <div style="font-size:0.95rem;font-weight:700;margin-bottom:8px;color:#1a1a2e;">화상 회의 정보</div>
+            <table style="border-collapse:collapse;font-size:0.9rem;">${infoRowsHtml}</table>
+          </div>`:''}
+          <p style="margin:20px 0 0 0;">감사합니다.</p>
+        </div>
+      </body></html>`;
+
+      // 텍스트 fallback
       const kr=entry.cities.find(c=>c.key==='kr');
       const vn=entry.cities.find(c=>c.key==='vn');
       const kz=entry.cities.find(c=>c.key==='kz');
       const us=entry.cities.find(c=>c.key==='us');
-      const subject=`[리마인드] 검사지원본부 주간회의 - ${entry.koreaDate}`;
-      const body=[
-        '안녕하세요,','',`다음 주간회의 일정을 안내드립니다.`,'','[ 회의 일정 ]',
-        `한국 (서울)       : ${kr.dateStr} (${kr.weekday}) ${kr.startT} ~ ${kr.endT}`,
-        `베트남 (하노이)   : ${vn.dateStr} (${vn.weekday}) ${vn.startT} ~ ${vn.endT}`,
+      const text=[
+        '안녕하세요,','','다음 주간회의 일정을 안내드립니다.','',
+        `[ ${getWeekLabel(entry.koreaDate)} 주간회의 ]`,
+        entry.room?`회의실: 본사 ${entry.room} 외 각 해외 법인 회의실`:'',
+        '',
+        `한국 (서울)        : ${kr.dateStr} (${kr.weekday}) ${kr.startT} ~ ${kr.endT}`,
+        `베트남 (하노이)    : ${vn.dateStr} (${vn.weekday}) ${vn.startT} ~ ${vn.endT}`,
         `카자흐스탄 (알마티): ${kz.dateStr} (${kz.weekday}) ${kz.startT} ~ ${kz.endT}`,
-        `미국 (LA)        : ${us.dateStr} (${us.weekday}) ${us.startT} ~ ${us.endT}${us.dst?' [서머타임]':''}`,
-        '',entry.link||entry.addr||entry.pw?'[ 화상 회의 정보 ]':'',
+        `미국 (LA)          : ${us.dateStr} (${us.weekday}) ${us.startT} ~ ${us.endT}${us.dst?' [서머타임]':''}`,
+        '',
+        (entry.link||entry.addr||entry.pw)?'[ 화상 회의 정보 ]':'',
         entry.link?`링크    : ${entry.link}`:'',
-        entry.addr?`ID      : ${entry.addr}`:'',
+        entry.addr?`회의 ID : ${entry.addr}`:'',
         entry.pw  ?`암호    : ${entry.pw}`:'',
         '','감사합니다.',
-      ].filter(l=>l!==undefined).join('\n');
-      return`mailto:${encodeURIComponent(to)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+      ].filter(l=>l!==undefined&&l!=='').join('\n');
+
+      return { subject, body: html, html, text };
+    }
+
+    // SMTP API를 통한 발송 (공통)
+    async function dispatchMail(entry, type){
+      const rs  = loadRS();
+      const smtp = loadSMTPData();
+
+      if(!smtp.server||!smtp.user||!smtp.pass){
+        alert('설정 > 리마인더 메일 발송 탭에서 SMTP 설정을 먼저 저장해주세요.');
+        return false;
+      }
+      if(rs.contacts.length===0){
+        alert('주소록을 먼저 등록해주세요.');
+        return false;
+      }
+
+      // 발송 중 버튼 비활성화 피드백 (이미지 캡처 전에 즉시)
+      const btn = document.querySelector(`[onclick="sendReminder(${entry.id})"]`);
+      if(btn){ btn.disabled=true; btn.textContent='발송 중...'; }
+
+      const { subject, body, html, text } = await buildMailContent(entry);
+      const to = rs.contacts.map(c=>c.email).join(',');
+
+      try {
+        const res = await fetch(SMTP_API, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ smtp, to, subject, body, html, text, isHtml: true }),
+        });
+        const data = await res.json();
+        if(!res.ok) throw new Error(data.error || '발송 실패');
+        markSent(entry.id, type);
+        renderReminderStatus();
+        return true;
+      } catch(err) {
+        const msg = err.message || '알 수 없는 오류';
+        showMailError(msg);
+        if(btn){ btn.disabled=false; btn.textContent='메일 발송'; }
+        return false;
+      }
+    }
+
+    function showMailError(msg){
+      // 기존 오류 박스 제거
+      const old = document.getElementById('mail-error-box');
+      if(old) old.remove();
+
+      const box = document.createElement('div');
+      box.id = 'mail-error-box';
+      box.style.cssText = 'margin-top:10px;padding:10px 14px;background:#fff5f5;border:1px solid #f0c0c0;border-radius:8px;font-size:0.8rem;color:#c44040;line-height:1.5;';
+
+      let guide = '';
+      if(msg.includes('535') || msg.includes('Authentication')){
+        guide = '<br><br><b>해결 방법:</b><br>'
+          + '① Microsoft 365 관리자 센터에서 해당 계정의 <b>SMTP AUTH 허용</b> 확인<br>'
+          + '② MFA(2단계 인증) 사용 중이면 <b>앱 비밀번호</b> 생성 후 SMTP 암호란에 입력<br>'
+          + '③ 계정/암호가 올바른지 다시 확인';
+      } else if(msg.includes('ECONNREFUSED') || msg.includes('connect')){
+        guide = '<br><br><b>해결 방법:</b><br>'
+          + '① SMTP 서버 주소·포트 확인<br>'
+          + '② 방화벽/보안 프로그램이 포트를 차단하지 않는지 확인';
+      } else if(msg.includes('Failed to fetch') || msg.includes('NetworkError')){
+        guide = '<br><br><b>해결 방법:</b><br>'
+          + '① 인터넷 연결 확인<br>'
+          + '② VPN·방화벽에서 vercel.app 접근 차단 여부 확인';
+      }
+
+      box.innerHTML = '<b>발송 오류:</b> ' + msg + guide;
+      const statusEl = document.getElementById('reminder-status');
+      statusEl.parentNode.insertBefore(box, statusEl);
     }
 
     // 수동 발송
     function sendReminder(id){
       const entry=load().find(e=>e.id===id); if(!entry)return;
-      const rs=loadRS();
-      if(rs.contacts.length===0){alert('주소록을 먼저 등록해주세요.');return;}
-      window.location.href=buildMailto(entry);
-      markSent(id,'manual');
-      setTimeout(renderReminderStatus,300);
+      dispatchMail(entry,'manual');
+    }
+
+    // ══ 비밀번호 잠금 ══
+    const APP_PW_KEY = 'appPassword_v1';
+    function getStoredPw(){ return localStorage.getItem(APP_PW_KEY) || ''; }
+
+    function submitLockPw(){
+      const val = document.getElementById('pw-lock-input').value;
+      const msg = document.getElementById('pw-lock-msg');
+      if(val === getStoredPw()){
+        document.getElementById('pw-lock-overlay').style.display = 'none';
+        document.getElementById('pw-lock-input').value = '';
+        msg.textContent = '';
+        if(_pendingTab){ _applyTab(_pendingTab); _pendingTab=null; }
+      } else {
+        msg.textContent = '비밀번호가 올바르지 않습니다.';
+        document.getElementById('pw-lock-input').select();
+      }
+    }
+
+    function saveAppPassword(){
+      const old = document.getElementById('pw-old').value;
+      const nw  = document.getElementById('pw-new').value;
+      const cf  = document.getElementById('pw-confirm').value;
+      const msg = document.getElementById('pw-change-msg');
+      const stored = getStoredPw();
+
+      if(stored && old !== stored){
+        msg.style.color = 'var(--vn)';
+        msg.textContent = '기존 비밀번호가 올바르지 않습니다.';
+        return;
+      }
+      if(!nw && !cf){
+        localStorage.removeItem(APP_PW_KEY);
+        msg.style.color = 'var(--kz)';
+        msg.textContent = '비밀번호가 해제되었습니다.';
+        ['pw-old','pw-new','pw-confirm'].forEach(id=>document.getElementById(id).value='');
+        return;
+      }
+      if(nw !== cf){
+        msg.style.color = 'var(--vn)';
+        msg.textContent = '변경 비밀번호와 재확인이 일치하지 않습니다.';
+        return;
+      }
+      localStorage.setItem(APP_PW_KEY, nw);
+      msg.style.color = 'var(--kz)';
+      msg.textContent = '비밀번호가 저장되었습니다.';
+      ['pw-old','pw-new','pw-confirm'].forEach(id=>document.getElementById(id).value='');
+    }
+
+    // ══ SMTP 설정 ══
+    const SMTP_KEY = 'smtpSettings_v1';
+    function loadSMTPData(){ try{ return JSON.parse(localStorage.getItem(SMTP_KEY))||{}; }catch{return{};} }
+
+    const SSL_PORT_MAP = { STARTTLS: '587', SSL: '465', NONE: '25' };
+    const SSL_INFO_MAP = {
+      STARTTLS: { color:'var(--kz)', text:'일반 연결 후 암호화로 업그레이드 · Microsoft 365 / Gmail 권장 방식' },
+      SSL:      { color:'var(--accent)', text:'연결 시작부터 암호화 · Gmail 등 다수 서비스 지원' },
+      NONE:     { color:'var(--vn)', text:'암호화 없음 · 내부망 전용 서버에서만 사용 권장' },
+    };
+
+    function onSslChange(){
+      const ssl = document.getElementById('smtp-ssl').value;
+      document.getElementById('smtp-port').value = SSL_PORT_MAP[ssl];
+    }
+
+    function loadSMTPUI(){
+      const s = loadSMTPData();
+      if(s.server) document.getElementById('smtp-server').value = s.server;
+      if(s.ssl){
+        const sel = document.getElementById('smtp-ssl');
+        for(let i=0;i<sel.options.length;i++){ if(sel.options[i].value===s.ssl){ sel.selectedIndex=i; break; } }
+      }
+      document.getElementById('smtp-port').value = s.port || SSL_PORT_MAP[document.getElementById('smtp-ssl').value];
+      if(s.user) document.getElementById('smtp-user').value = s.user;
+      if(s.pass) document.getElementById('smtp-pass').value = s.pass;
+      onSslChange();
+    }
+
+    function saveSMTPSettings(){
+      const s = {
+        server: document.getElementById('smtp-server').value.trim(),
+        ssl:    document.getElementById('smtp-ssl').value,
+        port:   document.getElementById('smtp-port').value.trim(),
+        user:   document.getElementById('smtp-user').value.trim(),
+        pass:   document.getElementById('smtp-pass').value.trim(),
+      };
+      localStorage.setItem(SMTP_KEY, JSON.stringify(s));
+      const msg = document.getElementById('smtp-msg');
+      msg.style.color = 'var(--kz)';
+      msg.textContent = 'SMTP 설정이 저장되었습니다.';
+      setTimeout(()=>{ msg.textContent=''; }, 3000);
+    }
+
+    async function testSMTPConnection(){
+      const smtp = {
+        server: document.getElementById('smtp-server').value.trim(),
+        ssl:    document.getElementById('smtp-ssl').value,
+        port:   document.getElementById('smtp-port').value.trim(),
+        user:   document.getElementById('smtp-user').value.trim(),
+        pass:   document.getElementById('smtp-pass').value.trim(),
+      };
+      if(!smtp.server||!smtp.user||!smtp.pass){
+        alert('서버, 계정, 암호를 모두 입력해주세요.');
+        return;
+      }
+      const msg = document.getElementById('smtp-msg');
+      msg.style.color = 'var(--ink-sub)';
+      msg.textContent = '연결 테스트 중...';
+      try {
+        const res = await fetch(SMTP_API, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ smtp, to: smtp.user, subject: '[테스트] SMTP 연결 확인', body: 'SMTP 연결 테스트입니다.' }),
+        });
+        const rawText = await res.text();
+        let data = {};
+        try { data = JSON.parse(rawText); } catch { data = { error: rawText }; }
+        console.log('[SMTP TEST] status:', res.status, 'body:', rawText);
+        if(!res.ok) throw new Error(data.error || data.message || rawText || ('HTTP '+res.status));
+        msg.style.color = 'var(--kz)';
+        msg.textContent = '✓ 연결 성공! 테스트 메일이 ' + smtp.user + ' 로 발송되었습니다.';
+      } catch(err){
+        const m = err.message || String(err);
+        console.error('[SMTP TEST] error:', err);
+        msg.style.color = 'var(--vn)';
+        let hint = '';
+        if(/535|Authentication|AUTH|credentials|password/i.test(m)) hint = ' · [힌트] 인증 실패 — 앱 비밀번호 필요 또는 SMTP AUTH 차단 가능성';
+        else if(/ECONNREFUSED|ETIMEDOUT|ENOTFOUND|connect|timeout/i.test(m)) hint = ' · [힌트] 서버 주소·포트·방화벽 확인';
+        else if(/TLS|SSL|certificate/i.test(m)) hint = ' · [힌트] 보안(STARTTLS/SSL) 설정 불일치';
+        msg.innerHTML = '✗ 오류 원문: <code style="user-select:text;">' + m.replace(/[<>&]/g, c=>({ '<':'&lt;','>':'&gt;','&':'&amp;'}[c])) + '</code>' + hint;
+      }
+    }
+
+    function clearFieldOnce(el){
+      el.value = '';
+      el.onclick = null;
     }
 
     // 자동 발송 체크 — 페이지 로드 시 실행
-    function checkAutoReminders(){
+    async function checkAutoReminders(){
       const rs=loadRS();
       if(!rs.contacts||rs.contacts.length===0) return;
+      const smtp=loadSMTPData();
+      if(!smtp.server||!smtp.user||!smtp.pass) return; // SMTP 미설정이면 자동발송 건너뜀
       const entries=load();
       const nowMs=Date.now();
       const windowMs=(rs.days||5)*24*3600*1000;
       const sentLog=loadSentLog();
       for(const e of entries.sort((a,b)=>meetingMs(a)-meetingMs(b))){
         const mMs=meetingMs(e);
-        if(mMs<=nowMs) continue;                     // 지난 회의
-        if(sentLog[e.id]) continue;                  // 이미 발송(수동 포함)
+        if(mMs<=nowMs) continue;
+        if(sentLog[e.id]) continue;
         if(mMs-nowMs<=windowMs){
-          window.location.href=buildMailto(e);
-          markSent(e.id,'auto');
-          setTimeout(renderReminderStatus,300);
+          await dispatchMail(e,'auto');
           break; // 한 번에 하나씩
         }
       }
