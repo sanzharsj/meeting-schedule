@@ -93,14 +93,14 @@
       box-shadow: 0 3px 8px rgba(0,0,0,0.13), 0 1px 3px rgba(0,0,0,0.07),
                   inset 0 1px 0 rgba(255,255,255,0.85);
     }
-    .cal-month-col.is-cur .cal-month-hdr {
+    .cal-month-hdr.is-open {
       background: linear-gradient(to bottom, #eef2ff 0%, #dde4ff 100%);
       border-color: #b8c8f5; color: var(--accent);
       box-shadow: 0 2px 6px rgba(59,91,219,0.18), 0 1px 2px rgba(59,91,219,0.10),
                   inset 0 1px 0 rgba(255,255,255,0.65);
     }
     .cal-menu-icon { font-size: 0.88rem; flex-shrink: 0; opacity: 0.7; }
-    .cal-month-col.is-cur .cal-menu-icon { opacity: 1; }
+    .cal-month-hdr.is-open .cal-menu-icon { opacity: 1; }
     .cal-cur-dot { width: 6px; height: 6px; border-radius: 50%;
                    background: var(--accent); flex-shrink: 0; }
     .cal-hdr-label { }
@@ -380,10 +380,6 @@
     .meeting-item.is-past .meeting-week::after {
       content: ' (종료)';
       font-size: 0.78rem; color: var(--ink-sub); font-weight: 500;
-    }
-    .cal-month-hdr.is-open {
-      background: linear-gradient(to bottom, #fff7e6 0%, #ffe9bf 100%);
-      border-color: #f0c674; color: #8a5a00;
     }
     .saved-item-info { flex: 1; min-width: 0; }
     .saved-item-title { font-size: 0.86rem; font-weight: 600; color: var(--ink); }
@@ -1119,6 +1115,13 @@
         if(!r.ok) return;
         const data=await r.json();
         if(!data||typeof data!=='object') return;
+        const cloudHasAny=CLOUD_KEYS.some(k=>k in data && data[k]!=null);
+        const localHasAny=CLOUD_KEYS.some(k=>localStorage.getItem(k)!=null);
+        if(!cloudHasAny && localHasAny){
+          // 클라우드 비어있고 로컬에 기존 데이터 있음 → 즉시 마이그레이션 푸시
+          await cloudPushNow();
+          return;
+        }
         for(const k of CLOUD_KEYS){
           if(k in data && data[k]!=null){
             _lsSet(k, typeof data[k]==='string'?data[k]:JSON.stringify(data[k]));
