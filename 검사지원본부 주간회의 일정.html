@@ -425,10 +425,10 @@
     .resv-label { font-size:0.72rem; color:var(--ink-sub); }
     .resv-time { font-size:0.78rem; font-weight:600; color:var(--accent); background:var(--accent-light);
                  padding:3px 8px; border-radius:6px; border:1px solid #c5d0f5; }
-    .btn-reserve { font-size:0.74rem; font-weight:600; color:#fff; background:var(--accent);
+    .btn-reserve { font-size:0.74rem; font-weight:600; color:#fff; background:var(--vn);
                    border:none; border-radius:6px; padding:5px 10px; cursor:pointer; font-family:inherit;
                    transition:background 0.12s; }
-    .btn-reserve:hover { background:#2c47b8; }
+    .btn-reserve:hover { background:#a83434; }
     .btn-cancel-resv { font-size:0.68rem; font-weight:600; color:var(--vn); background:#fff;
                        border:1px solid var(--vn-border); border-radius:5px; padding:2px 7px;
                        cursor:pointer; font-family:inherit; line-height:1.2; transition:all 0.12s; }
@@ -1531,7 +1531,7 @@
           if(sent.type==='manual'){
             resvHtml=`<div class="resv-row">
               <span class="reminder-badge badge-manual">수동 발송 완료</span>
-              <button class="btn-reserve" onclick="reschedule(${e.id})" title="자동 발송을 다시 예약">재예약</button>
+              <button class="btn-reserve" onclick="reschedule(${e.id})" title="자동 발송을 다시 예약">발송 예약</button>
             </div>`;
           } else {
             resvHtml='<span class="reminder-badge badge-auto">자동 발송 완료</span>';
@@ -1545,7 +1545,7 @@
           </div>`;
         } else {
           resvHtml=`<div class="resv-row">
-            <button class="btn-reserve" onclick="reserveSchedule(${e.id})">발송예약</button>
+            <button class="btn-reserve" onclick="reserveSchedule(${e.id})">발송 예약</button>
           </div>`;
         }
 
