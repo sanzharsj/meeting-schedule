@@ -1092,7 +1092,44 @@
         setDurMinutes('s', (+p.durH||0)*60 + (+p.durM||0));
       }catch{}
     }
-    window.addEventListener('DOMContentLoaded',()=>{initDate();loadFormPref();renderAll();loadReminderUI();loadSMTPUI();checkAutoReminders();});
+    // ── Cloud sync (Vercel Blob via /api/data) ──
+    const CLOUD_KEYS = ['intlMeetingLog_v2','reminderSettings_v1','reminderSentLog_v1','reminderSchedule_v1','appPassword_v1','smtpSettings_v1','meetingFormPref_v1'];
+    const _lsSet = localStorage.setItem.bind(localStorage);
+    const _lsRem = localStorage.removeItem.bind(localStorage);
+    let _cloudPushTimer=null;
+    function cloudPushDebounced(){
+      clearTimeout(_cloudPushTimer);
+      _cloudPushTimer=setTimeout(cloudPushNow,800);
+    }
+    async function cloudPushNow(){
+      const data={};
+      for(const k of CLOUD_KEYS){
+        const v=localStorage.getItem(k);
+        if(v!=null) data[k]=v;
+      }
+      try{
+        await fetch('/api/data',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data),cache:'no-store'});
+      }catch(e){console.warn('cloudPush failed',e);}
+    }
+    localStorage.setItem=function(k,v){_lsSet(k,v);if(CLOUD_KEYS.includes(k))cloudPushDebounced();};
+    localStorage.removeItem=function(k){_lsRem(k);if(CLOUD_KEYS.includes(k))cloudPushDebounced();};
+    async function cloudLoad(){
+      try{
+        const r=await fetch('/api/data',{cache:'no-store'});
+        if(!r.ok) return;
+        const data=await r.json();
+        if(!data||typeof data!=='object') return;
+        for(const k of CLOUD_KEYS){
+          if(k in data && data[k]!=null){
+            _lsSet(k, typeof data[k]==='string'?data[k]:JSON.stringify(data[k]));
+          }
+        }
+      }catch(e){console.warn('cloudLoad failed',e);}
+    }
+    window.addEventListener('DOMContentLoaded',async()=>{
+      await cloudLoad();
+      initDate();loadFormPref();renderAll();loadReminderUI();loadSMTPUI();checkAutoReminders();
+    });
 
     // ── Helpers ──
     function fmtTz(ms,tz,opts){return new Intl.DateTimeFormat('ko-KR',{timeZone:tz,...opts}).format(new Date(ms));}
