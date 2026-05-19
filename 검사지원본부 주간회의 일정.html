@@ -1477,16 +1477,12 @@
         <div style="max-width:680px;margin:0 auto;background:#ffffff;padding:28px 28px 24px 28px;border-radius:12px;">
           <p style="margin:0 0 14px 0;">안녕하세요.</p>
           <p style="margin:0 0 18px 0;">검사지원본부 회의 일정 안내 드립니다.</p>
-          <p style="margin:0 0 18px 0;">
-            ${scheduleLines.map(l=>escHtml(l)).join('<br>')}
-          </p>
-          <p style="margin:0 0 18px 0;">
-            ${[
-              entry.link?`링크 : <a href="${escHtml(entry.link)}" style="color:#3b5bdb;word-break:break-all;">${escHtml(entry.link)}</a>`:'',
-              entry.addr?`회의 ID : ${escHtml(entry.addr)}`:'',
-              entry.pw?`암호 : ${escHtml(entry.pw)}`:'',
-            ].filter(Boolean).join('<br>')}
-          </p>
+          ${scheduleLines.map(l=>`<p style="margin:0 0 4px 0;line-height:1.7;">${escHtml(l)}</p>`).join('\n')}
+          <p style="margin:0 0 4px 0;line-height:1.7;">&nbsp;</p>
+          ${entry.link?`<p style="margin:0 0 4px 0;line-height:1.7;">링크 : <a href="${escHtml(entry.link)}" style="color:#3b5bdb;word-break:break-all;">${escHtml(entry.link)}</a></p>`:''}
+          ${entry.addr?`<p style="margin:0 0 4px 0;line-height:1.7;">회의 ID : ${escHtml(entry.addr)}</p>`:''}
+          ${entry.pw?`<p style="margin:0 0 4px 0;line-height:1.7;">암호 : ${escHtml(entry.pw)}</p>`:''}
+          <p style="margin:0 0 4px 0;line-height:1.7;">&nbsp;</p>
           <p style="margin:0 0 18px 0;"><span style="color:#d32f2f;font-weight:700;">회의 전체 일정 : </span><a href="${VERCEL_URL}" style="color:#d32f2f;font-weight:700;text-decoration:underline;">${VERCEL_URL}</a></p>
           <p style="margin:0;">감사합니다.</p>
         </div>
@@ -1526,14 +1522,14 @@
       const btn = document.querySelector(`[onclick="sendReminder(${entry.id})"]`);
       if(btn){ btn.disabled=true; btn.textContent='발송 중...'; }
 
-      const { subject, body, html, text } = await buildMailContent(entry);
+      const { subject, html, text } = await buildMailContent(entry);
       const to = rs.contacts.map(c=>c.email).join(',');
 
       try {
         const res = await fetch(SMTP_API, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ smtp, to, subject, body, html, text, isHtml: true }),
+          body: JSON.stringify({ smtp, to, subject, body: text, html, text, isHtml: true, contentType: 'text/html' }),
         });
         const data = await res.json();
         if(!res.ok) throw new Error(data.error || '발송 실패');
