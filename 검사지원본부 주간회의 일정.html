@@ -1444,56 +1444,64 @@
       }
     }
 
+    // "HH:MM" → "HH시 MM분"
+    function fmtHM(hm){ const [h,m]=hm.split(':'); return `${h}시 ${m}분`; }
+    // "YYYY년 M월 D일" (ko-KR locale)
+    function fmtYMD(ms,tz){ return new Intl.DateTimeFormat('ko-KR',{timeZone:tz,year:'numeric',month:'long',day:'numeric'}).format(new Date(ms)); }
+
     // 메일 제목·본문 생성 (HTML + 텍스트 fallback)
     async function buildMailContent(entry){
       const subject=`${getWeekLabel(entry.koreaDate)} 주간회의 공지`;
 
-      let imgDataUrl='';
-      try { imgDataUrl=await captureMeetingCardImage(entry); }
-      catch(err){ console.error('[capture image failed]',err); }
+      const [yr,mo,dy]=entry.koreaDate.split('-').map(Number);
+      const [hr,mn]=entry.koreaTime.split(':').map(Number);
+      const koreaMs=Date.UTC(yr,mo-1,dy,hr-9,mn);
 
-      const infoRowsHtml=[
-        entry.link?`<tr><td style="padding:4px 12px 4px 0;color:#6b7280;font-weight:600;white-space:nowrap;">링크</td><td style="padding:4px 0;"><a href="${escHtml(entry.link)}" style="color:#3b5bdb;word-break:break-all;">${escHtml(entry.link)}</a></td></tr>`:'',
-        entry.addr?`<tr><td style="padding:4px 12px 4px 0;color:#6b7280;font-weight:600;white-space:nowrap;">회의 ID</td><td style="padding:4px 0;color:#1a1a2e;">${escHtml(entry.addr)}</td></tr>`:'',
-        entry.pw?`<tr><td style="padding:4px 12px 4px 0;color:#6b7280;font-weight:600;white-space:nowrap;">암호</td><td style="padding:4px 0;color:#1a1a2e;">${escHtml(entry.pw)}</td></tr>`:'',
-      ].filter(Boolean).join('');
+      // 본사/OHKZ/OHUS/OHVN 순서
+      const cityMap={kr:entry.cities.find(c=>c.key==='kr'),
+                     kz:entry.cities.find(c=>c.key==='kz'),
+                     us:entry.cities.find(c=>c.key==='us'),
+                     vn:entry.cities.find(c=>c.key==='vn')};
+      const rows=[
+        { label:'본사(서울)',   c:cityMap.kr },
+        { label:'OHKZ(알마티)', c:cityMap.kz },
+        { label:'OHUS(LA)',     c:cityMap.us },
+        { label:'OHVN(하노이)', c:cityMap.vn },
+      ];
+      const scheduleLines=rows.map(r=>`${r.label} : ${fmtYMD(koreaMs,r.c.tz)} ${fmtHM(r.c.startT)} ~ ${fmtHM(r.c.endT)}`);
 
-      const html=`<!DOCTYPE html><html><body style="margin:0;padding:20px;background:#f0f2f5;font-family:'Malgun Gothic','Apple SD Gothic Neo',Arial,sans-serif;color:#1a1a2e;">
-        <div style="max-width:720px;margin:0 auto;background:#ffffff;padding:24px;border-radius:12px;">
-          <p style="margin:0 0 8px 0;">안녕하세요,</p>
-          <p style="margin:0 0 16px 0;">다음 주간회의 일정을 안내드립니다.</p>
-          ${imgDataUrl?`<div style="margin:12px 0;"><img src="${imgDataUrl}" alt="회의 일정" style="max-width:100%;height:auto;border:1px solid #e2e6ea;border-radius:8px;display:block;" /></div>`:''}
-          ${infoRowsHtml?`<div style="margin-top:18px;padding:14px 16px;background:#f8f9fb;border:1px solid #e2e6ea;border-radius:8px;">
-            <div style="font-size:0.95rem;font-weight:700;margin-bottom:8px;color:#1a1a2e;">화상 회의 정보</div>
-            <table style="border-collapse:collapse;font-size:0.9rem;">${infoRowsHtml}</table>
-          </div>`:''}
-          <p style="margin:20px 0 0 0;"><span style="color:#d32f2f;font-weight:700;">전체 회의 일정 : </span><a href="https://meeting-schedule-rho.vercel.app" style="color:#d32f2f;font-weight:700;text-decoration:underline;">https://meeting-schedule-rho.vercel.app</a></p>
-          <p style="margin:20px 0 0 0;">감사합니다.</p>
+      const VERCEL_URL='https://meeting-schedule-rho.vercel.app';
+
+      // HTML 본문 — 줄바꿈을 <br>로 보존
+      const html=`<!DOCTYPE html><html><body style="margin:0;padding:20px;background:#f0f2f5;font-family:'Malgun Gothic','Apple SD Gothic Neo',Arial,sans-serif;color:#1a1a2e;font-size:14px;line-height:1.7;">
+        <div style="max-width:680px;margin:0 auto;background:#ffffff;padding:28px 28px 24px 28px;border-radius:12px;">
+          <p style="margin:0 0 14px 0;">안녕하세요.</p>
+          <p style="margin:0 0 18px 0;">검사지원본부 회의 일정 안내 드립니다.</p>
+          <div style="margin:0 0 18px 0;">
+            ${scheduleLines.map(l=>`<div>${escHtml(l)}</div>`).join('')}
+          </div>
+          <div style="margin:0 0 18px 0;">
+            ${entry.link?`<div>링크 : <a href="${escHtml(entry.link)}" style="color:#3b5bdb;word-break:break-all;">${escHtml(entry.link)}</a></div>`:''}
+            ${entry.addr?`<div>회의 ID : ${escHtml(entry.addr)}</div>`:''}
+            ${entry.pw?`<div>암호 : ${escHtml(entry.pw)}</div>`:''}
+          </div>
+          <p style="margin:0 0 18px 0;"><span style="color:#d32f2f;font-weight:700;">회의 전체 일정 : </span><a href="${VERCEL_URL}" style="color:#d32f2f;font-weight:700;text-decoration:underline;">${VERCEL_URL}</a></p>
+          <p style="margin:0;">감사합니다.</p>
         </div>
       </body></html>`;
 
       // 텍스트 fallback
-      const kr=entry.cities.find(c=>c.key==='kr');
-      const vn=entry.cities.find(c=>c.key==='vn');
-      const kz=entry.cities.find(c=>c.key==='kz');
-      const us=entry.cities.find(c=>c.key==='us');
       const text=[
-        '안녕하세요,','','다음 주간회의 일정을 안내드립니다.','',
-        `[ ${getWeekLabel(entry.koreaDate)} 주간회의 ]`,
-        entry.room?`회의실: 본사 ${entry.room} 외 각 해외 법인 회의실`:'',
-        '',
-        `한국 (서울)        : ${kr.dateStr} (${kr.weekday}) ${kr.startT} ~ ${kr.endT}`,
-        `베트남 (하노이)    : ${vn.dateStr} (${vn.weekday}) ${vn.startT} ~ ${vn.endT}`,
-        `카자흐스탄 (알마티): ${kz.dateStr} (${kz.weekday}) ${kz.startT} ~ ${kz.endT}`,
-        `미국 (LA)          : ${us.dateStr} (${us.weekday}) ${us.startT} ~ ${us.endT}${us.dst?' [서머타임]':''}`,
-        '',
-        (entry.link||entry.addr||entry.pw)?'[ 화상 회의 정보 ]':'',
-        entry.link?`링크    : ${entry.link}`:'',
+        '안녕하세요.','',
+        '검사지원본부 회의 일정 안내 드립니다.','',
+        ...scheduleLines,'',
+        entry.link?`링크 : ${entry.link}`:'',
         entry.addr?`회의 ID : ${entry.addr}`:'',
-        entry.pw  ?`암호    : ${entry.pw}`:'',
-        '','전체 회의 일정 : https://meeting-schedule-rho.vercel.app',
+        entry.pw  ?`암호 : ${entry.pw}`:'',
+        '',
+        `회의 전체 일정 : ${VERCEL_URL}`,
         '','감사합니다.',
-      ].filter(l=>l!==undefined&&l!=='').join('\n');
+      ].filter(l=>l!=='').join('\n');
 
       return { subject, body: html, html, text };
     }
