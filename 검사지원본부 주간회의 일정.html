@@ -1477,14 +1477,16 @@
         <div style="max-width:680px;margin:0 auto;background:#ffffff;padding:28px 28px 24px 28px;border-radius:12px;">
           <p style="margin:0 0 14px 0;">안녕하세요.</p>
           <p style="margin:0 0 18px 0;">검사지원본부 회의 일정 안내 드립니다.</p>
-          <div style="margin:0 0 18px 0;">
-            ${scheduleLines.map(l=>`<div>${escHtml(l)}</div>`).join('')}
-          </div>
-          <div style="margin:0 0 18px 0;">
-            ${entry.link?`<div>링크 : <a href="${escHtml(entry.link)}" style="color:#3b5bdb;word-break:break-all;">${escHtml(entry.link)}</a></div>`:''}
-            ${entry.addr?`<div>회의 ID : ${escHtml(entry.addr)}</div>`:''}
-            ${entry.pw?`<div>암호 : ${escHtml(entry.pw)}</div>`:''}
-          </div>
+          <p style="margin:0 0 18px 0;">
+            ${scheduleLines.map(l=>escHtml(l)).join('<br>')}
+          </p>
+          <p style="margin:0 0 18px 0;">
+            ${[
+              entry.link?`링크 : <a href="${escHtml(entry.link)}" style="color:#3b5bdb;word-break:break-all;">${escHtml(entry.link)}</a>`:'',
+              entry.addr?`회의 ID : ${escHtml(entry.addr)}`:'',
+              entry.pw?`암호 : ${escHtml(entry.pw)}`:'',
+            ].filter(Boolean).join('<br>')}
+          </p>
           <p style="margin:0 0 18px 0;"><span style="color:#d32f2f;font-weight:700;">회의 전체 일정 : </span><a href="${VERCEL_URL}" style="color:#d32f2f;font-weight:700;text-decoration:underline;">${VERCEL_URL}</a></p>
           <p style="margin:0;">감사합니다.</p>
         </div>
