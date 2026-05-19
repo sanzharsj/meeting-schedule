@@ -347,6 +347,19 @@
       border: 1px solid var(--border); border-radius: 8px; gap: 8px;
     }
     .saved-item.is-past { opacity: 0.45; }
+    .meeting-item.is-past {
+      opacity: 0.55;
+      filter: grayscale(0.6);
+      background: #f5f6f8;
+    }
+    .meeting-item.is-past .meeting-week::after {
+      content: ' (종료)';
+      font-size: 0.78rem; color: var(--ink-sub); font-weight: 500;
+    }
+    .cal-month-hdr.is-open {
+      background: linear-gradient(to bottom, #fff7e6 0%, #ffe9bf 100%);
+      border-color: #f0c674; color: #8a5a00;
+    }
     .saved-item-info { flex: 1; min-width: 0; }
     .saved-item-title { font-size: 0.86rem; font-weight: 600; color: var(--ink); }
     .saved-item-sub   { font-size: 0.74rem; color: var(--ink-sub); margin-top: 1px; }
@@ -1276,8 +1289,9 @@
         const meetDays=new Set((groups[ym]||[]).map(e=>+e.koreaDate.split('-')[2]));
         const holidayMap=buildHolidayMap(y,m);
         const cal=buildCalHtml(y,m,meetDays,isCur?'lg':'md',0,holidayMap);
+        const isOpen=openMonths.has(ym);
         return`<div class="cal-month-col${isCur?' is-cur':''}">
-          <div class="cal-month-hdr" onclick="toggleMonth('${ym}')">
+          <div class="cal-month-hdr${isOpen?' is-open':''}" onclick="toggleMonth('${ym}')" title="${isOpen?'클릭하여 지난 회의 숨기기':'클릭하여 이 달의 지난 회의도 보기'}">
             <span class="cal-menu-icon">≡</span>
             <span class="cal-hdr-label">${label}</span>
           </div>
@@ -1285,16 +1299,20 @@
         </div>`;
       }).join('');
 
-      // Future entries only (today and later), flat ascending order
+      // 기본: 오늘 이후의 회의. 열린 월에 한해 그 월의 지난 회의도 포함
       const today=seoulToday();
-      const futureEntries=entries.filter(e=>e.koreaDate>=today).sort((a,b)=>a.koreaDate.localeCompare(b.koreaDate));
+      const visibleEntries=entries
+        .filter(e=>e.koreaDate>=today || openMonths.has(e.koreaDate.slice(0,7)))
+        .sort((a,b)=>a.koreaDate.localeCompare(b.koreaDate)||a.koreaTime.localeCompare(b.koreaTime));
 
-      if(futureEntries.length===0){
+      if(visibleEntries.length===0){
         main.innerHTML='<div class="meeting-empty"><p>예정된 회의 일정이 없습니다.</p><small>설정 탭에서 일정을 추가해주세요.</small></div>';
         return;
       }
 
-      main.innerHTML = futureEntries.map(e=>`<div class="meeting-item" data-entry-id="${e.id}">
+      main.innerHTML = visibleEntries.map(e=>{
+        const isPast=e.koreaDate<today;
+        return`<div class="meeting-item${isPast?' is-past':''}" data-entry-id="${e.id}">
         <div class="meeting-item-header">
           <div class="meeting-week">${getWeekLabel(e.koreaDate)}</div>
           ${e.room?`<div class="meeting-room" style="font-size:0.85rem;color:var(--ink-sub);margin-top:4px;font-weight:500;">본사 ${escHtml(e.room)} 외 각 해외 법인 회의실</div>`:''}
@@ -1303,7 +1321,7 @@
           <div class="country-grid">${cityCardsHtml(e.cities)}</div>
           ${videoInfoHtml(e)}
         </div>
-      </div>`).join('');
+      </div>`;}).join('');
     }
 
     function toggleMonth(ym){
