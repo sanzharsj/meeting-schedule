@@ -347,6 +347,31 @@
       border: 1px solid var(--border); border-radius: 8px; gap: 8px;
     }
     .saved-item.is-past { opacity: 0.45; }
+    .view-mode-btn {
+      width: 100%; padding: 8px 10px; margin-bottom: 12px;
+      border-radius: 9px; border: 1px solid rgba(0,0,0,0.10);
+      font-size: 0.82rem; font-weight: 700; cursor: pointer;
+      background: linear-gradient(to bottom, #ffffff 0%, #f0f2f5 100%);
+      color: var(--ink);
+      box-shadow: 0 2px 5px rgba(0,0,0,0.09), 0 1px 2px rgba(0,0,0,0.05),
+                  inset 0 1px 0 rgba(255,255,255,0.85);
+      transition: box-shadow .15s;
+    }
+    .view-mode-btn:hover {
+      box-shadow: 0 3px 8px rgba(0,0,0,0.13), 0 1px 3px rgba(0,0,0,0.07),
+                  inset 0 1px 0 rgba(255,255,255,0.85);
+    }
+    .view-mode-btn.active {
+      background: linear-gradient(to bottom, #eef2ff 0%, #dde4ff 100%);
+      border-color: #b8c8f5; color: var(--accent);
+      box-shadow: 0 2px 6px rgba(59,91,219,0.18), 0 1px 2px rgba(59,91,219,0.10),
+                  inset 0 1px 0 rgba(255,255,255,0.65);
+    }
+    .app-footer {
+      width: 100%; padding: 18px 12px; margin-top: 24px;
+      text-align: center; font-size: 0.78rem; color: var(--ink-sub);
+      border-top: 1px solid var(--border);
+    }
     .meeting-item.is-past {
       opacity: 0.55;
       filter: grayscale(0.6);
@@ -1260,7 +1285,8 @@
     function renderAll(){renderSchedule();renderSavedList();renderReminderStatus();}
 
     // ── Render Tab 1 ──
-    let openMonths = new Set();
+    // null = "예정된 회의" 모드(미래만), 'YYYY-MM' = 해당 월만
+    let selectedMonth = null;
 
     function renderSchedule(){
       const entries=load();
@@ -1269,7 +1295,8 @@
       const curYM=seoulYM();
 
       if(entries.length===0){
-        sidebar.innerHTML='<div style="padding:8px;font-size:0.82rem;color:var(--ink-sub);">저장된 일정이 없습니다.</div>';
+        sidebar.innerHTML=`<button class="view-mode-btn active" onclick="setViewUpcoming()">예정된 회의</button>
+          <div style="padding:8px;font-size:0.82rem;color:var(--ink-sub);">저장된 일정이 없습니다.</div>`;
         main.innerHTML='<div class="meeting-empty"><p>저장된 회의 일정이 없습니다.</p><small>설정 탭에서 일정을 추가해주세요.</small></div>';
         return;
       }
@@ -1278,35 +1305,41 @@
       const groups={};
       entries.forEach(e=>{const ym=e.koreaDate.slice(0,7);if(!groups[ym])groups[ym]=[];groups[ym].push(e);});
 
-      // Sidebar — 3 vertical calendars: prev / cur / next
+      // Sidebar — "예정된 회의" 버튼 + 3 vertical calendars: prev / cur / next
       function addMonths(ym,n){const[y,m]=ym.split('-').map(Number);const d=new Date(Date.UTC(y,m-1+n,1));return`${d.getUTCFullYear()}-${String(d.getUTCMonth()+1).padStart(2,'0')}`;}
       const prevYM=addMonths(curYM,-1);
       const nextYM=addMonths(curYM,1);
-      sidebar.innerHTML=[prevYM,curYM,nextYM].map(ym=>{
+      const upcomingActive=selectedMonth===null;
+      const calsHtml=[prevYM,curYM,nextYM].map(ym=>{
         const[y,m]=ym.split('-').map(Number);
         const isCur=ym===curYM;
         const label=`${y}년 ${m}월`;
         const meetDays=new Set((groups[ym]||[]).map(e=>+e.koreaDate.split('-')[2]));
         const holidayMap=buildHolidayMap(y,m);
         const cal=buildCalHtml(y,m,meetDays,isCur?'lg':'md',0,holidayMap);
-        const isOpen=openMonths.has(ym);
+        const isOpen=selectedMonth===ym;
         return`<div class="cal-month-col${isCur?' is-cur':''}">
-          <div class="cal-month-hdr${isOpen?' is-open':''}" onclick="toggleMonth('${ym}')" title="${isOpen?'클릭하여 지난 회의 숨기기':'클릭하여 이 달의 지난 회의도 보기'}">
+          <div class="cal-month-hdr${isOpen?' is-open':''}" onclick="toggleMonth('${ym}')" title="${isOpen?'클릭하여 예정된 회의 보기로 돌아가기':'클릭하여 이 달의 회의만 보기'}">
             <span class="cal-menu-icon">≡</span>
             <span class="cal-hdr-label">${label}</span>
           </div>
           ${cal}
         </div>`;
       }).join('');
+      sidebar.innerHTML=`<button class="view-mode-btn${upcomingActive?' active':''}" onclick="setViewUpcoming()">예정된 회의</button>${calsHtml}`;
 
-      // 기본: 오늘 이후의 회의. 열린 월에 한해 그 월의 지난 회의도 포함
       const today=seoulToday();
-      const visibleEntries=entries
-        .filter(e=>e.koreaDate>=today || openMonths.has(e.koreaDate.slice(0,7)))
-        .sort((a,b)=>a.koreaDate.localeCompare(b.koreaDate)||a.koreaTime.localeCompare(b.koreaTime));
+      let visibleEntries;
+      if(selectedMonth){
+        visibleEntries=entries.filter(e=>e.koreaDate.slice(0,7)===selectedMonth);
+      }else{
+        visibleEntries=entries.filter(e=>e.koreaDate>=today);
+      }
+      visibleEntries=visibleEntries.sort((a,b)=>a.koreaDate.localeCompare(b.koreaDate)||a.koreaTime.localeCompare(b.koreaTime));
 
       if(visibleEntries.length===0){
-        main.innerHTML='<div class="meeting-empty"><p>예정된 회의 일정이 없습니다.</p><small>설정 탭에서 일정을 추가해주세요.</small></div>';
+        const msg=selectedMonth?'해당 월의 회의가 없습니다.':'예정된 회의 일정이 없습니다.';
+        main.innerHTML=`<div class="meeting-empty"><p>${msg}</p><small>설정 탭에서 일정을 추가해주세요.</small></div>`;
         return;
       }
 
@@ -1325,7 +1358,11 @@
     }
 
     function toggleMonth(ym){
-      if(openMonths.has(ym)) openMonths.delete(ym); else openMonths.add(ym);
+      selectedMonth = (selectedMonth===ym) ? null : ym;
+      renderSchedule();
+    }
+    function setViewUpcoming(){
+      selectedMonth = null;
       renderSchedule();
     }
 
@@ -1907,5 +1944,6 @@
       }
     }
   </script>
+  <footer class="app-footer">Open Healthcare Jang</footer>
 </body>
 </html>
