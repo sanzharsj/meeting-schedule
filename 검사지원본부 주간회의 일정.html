@@ -299,12 +299,15 @@
     .dur-custom-wrap input::-webkit-inner-spin-button { -webkit-appearance:none; margin:0; }
     .dur-custom-wrap .form-sep { font-size:0.82rem; color:var(--ink-sub); }
 
-    /* ── Time input visual polish ── */
-    input[type="time"] {
-      font-family: inherit; font-size: 0.95rem; padding: 6px 10px;
-      border: 1px solid var(--border); border-radius: 6px; background: #fff;
+    /* ── Custom time picker (AM/PM + 시 + 5분) ── */
+    .time-picker { display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
+    .time-picker select {
+      font-family:inherit; font-size:0.9rem; padding:6px 8px;
+      border:1px solid var(--border); border-radius:6px; background:#fff;
+      color:var(--ink); cursor:pointer;
     }
-    input[type="time"]:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(59,91,219,0.15); }
+    .time-picker select:focus { outline:none; border-color:var(--accent); box-shadow:0 0 0 3px rgba(59,91,219,0.15); }
+    .time-picker .tp-sep { font-size:0.82rem; color:var(--ink-sub); }
     .form-sep { font-size: 0.78rem; color: var(--ink-sub); white-space: nowrap; }
     .pw-wrap { position: relative; }
     .pw-wrap input { padding-right: 48px; }
@@ -571,8 +574,13 @@
                       <input type="date" id="s-date" />
                     </div>
                     <div class="form-row">
-                      <label for="s-time">시작 시간 (한국)</label>
-                      <input type="time" id="s-time" value="13:30" step="300" />
+                      <label>시작 시간 (한국)</label>
+                      <div class="time-picker" id="s-time-picker">
+                        <select id="s-time-ampm"></select>
+                        <select id="s-time-hour"></select><span class="tp-sep">시</span>
+                        <select id="s-time-min"></select><span class="tp-sep">분</span>
+                        <input type="hidden" id="s-time" value="13:30" />
+                      </div>
                     </div>
                     <div class="form-row">
                       <label>회의 시간</label>
@@ -584,9 +592,9 @@
                         <button type="button" class="dur-chip" data-custom="1">직접 입력</button>
                       </div>
                       <div class="dur-custom-wrap" id="s-dur-custom">
-                        <input type="number" id="s-dur-h" min="0" max="12" step="1" value="1" />
+                        <input type="number" id="s-dur-h" min="0" max="12" value="1" />
                         <span class="form-sep">시간</span>
-                        <input type="number" id="s-dur-m" min="0" max="55" step="5" value="0" />
+                        <input type="number" id="s-dur-m" min="0" max="59" value="0" />
                         <span class="form-sep">분</span>
                       </div>
                     </div>
@@ -780,8 +788,13 @@
         <input type="date" id="m-date" />
       </div>
       <div class="form-row">
-        <label for="m-time">시작 시간 (한국)</label>
-        <input type="time" id="m-time" step="300" />
+        <label>시작 시간 (한국)</label>
+        <div class="time-picker" id="m-time-picker">
+          <select id="m-time-ampm"></select>
+          <select id="m-time-hour"></select><span class="tp-sep">시</span>
+          <select id="m-time-min"></select><span class="tp-sep">분</span>
+          <input type="hidden" id="m-time" />
+        </div>
       </div>
       <div class="form-row">
         <label>회의 시간</label>
@@ -793,9 +806,9 @@
           <button type="button" class="dur-chip" data-custom="1">직접 입력</button>
         </div>
         <div class="dur-custom-wrap" id="m-dur-custom">
-          <input type="number" id="m-dur-h" min="0" max="12" step="1" value="1" />
+          <input type="number" id="m-dur-h" min="0" max="12" value="1" />
           <span class="form-sep">시간</span>
-          <input type="number" id="m-dur-m" min="0" max="55" step="5" value="0" />
+          <input type="number" id="m-dur-m" min="0" max="59" value="0" />
           <span class="form-sep">분</span>
         </div>
       </div>
@@ -921,25 +934,6 @@
         syncChipToValue(prefix, total);
         if(prefix==='s') saveFormPref();
       }));
-      // 포커스를 잃을 때(또는 change) 값 clamp + 5분 단위 스냅
-      [hEl,mEl].forEach(inp=>{
-        const onBlur=()=>{
-          const isMin=inp===mEl;
-          const min=0, max=isMin?55:12, step=isMin?5:1;
-          let v=parseInt(inp.value,10);
-          if(isNaN(v)) v=0;
-          if(v<min) v=min;
-          if(v>max) v=max;
-          v=Math.round(v/step)*step;
-          if(v>max) v=max;
-          inp.value=v;
-          const total=(+hEl.value||0)*60+(+mEl.value||0);
-          syncChipToValue(prefix, total);
-          if(prefix==='s') saveFormPref();
-        };
-        inp.addEventListener('blur', onBlur);
-        inp.addEventListener('change', onBlur);
-      });
     }
     function syncChipToValue(prefix, totalMin){
       const chipsEl = document.getElementById(prefix+'-dur-chips');
@@ -963,6 +957,48 @@
       syncChipToValue(prefix, totalMin);
     }
     initDurChips('s'); initDurChips('m');
+
+    // ── 커스텀 시작 시간 picker (오전/오후 + 시 + 5분 단위) ──
+    function buildTimePickerOptions(prefix){
+      const ampm=document.getElementById(prefix+'-time-ampm');
+      const hour=document.getElementById(prefix+'-time-hour');
+      const min =document.getElementById(prefix+'-time-min');
+      ampm.innerHTML='<option value="AM">오전</option><option value="PM">오후</option>';
+      hour.innerHTML=Array.from({length:12},(_,i)=>{const v=i+1;return `<option value="${v}">${v}</option>`;}).join('');
+      min.innerHTML =Array.from({length:12},(_,i)=>{const v=String(i*5).padStart(2,'0');return `<option value="${v}">${v}</option>`;}).join('');
+    }
+    function syncTimeHidden(prefix){
+      const ampm=document.getElementById(prefix+'-time-ampm').value;
+      const h12 =+document.getElementById(prefix+'-time-hour').value;
+      const mm  =document.getElementById(prefix+'-time-min').value;
+      let h24=h12%12; if(ampm==='PM') h24+=12;
+      document.getElementById(prefix+'-time').value=String(h24).padStart(2,'0')+':'+mm;
+    }
+    function setTimePicker(prefix, hhmm){
+      if(!hhmm) return;
+      const [hh,mm]=hhmm.split(':').map(Number);
+      const isPM=hh>=12;
+      let h12=hh%12; if(h12===0) h12=12;
+      // 분은 5분 단위로 스냅
+      const mmSnap=Math.round(mm/5)*5;
+      const mmFinal=Math.min(55, mmSnap);
+      document.getElementById(prefix+'-time-ampm').value=isPM?'PM':'AM';
+      document.getElementById(prefix+'-time-hour').value=String(h12);
+      document.getElementById(prefix+'-time-min').value=String(mmFinal).padStart(2,'0');
+      syncTimeHidden(prefix);
+    }
+    function initTimePicker(prefix, defaultHHMM){
+      buildTimePickerOptions(prefix);
+      ['ampm','hour','min'].forEach(part=>{
+        document.getElementById(prefix+'-time-'+part).addEventListener('change',()=>{
+          syncTimeHidden(prefix);
+          if(prefix==='s') saveFormPref();
+        });
+      });
+      setTimePicker(prefix, defaultHHMM || document.getElementById(prefix+'-time').value || '13:30');
+    }
+    initTimePicker('s','13:30');
+    initTimePicker('m','13:30');
 
     // ── IP date init ──
     async function initDate() {
@@ -990,7 +1026,7 @@
       try{
         const p=JSON.parse(localStorage.getItem(FORM_PREF_KEY));
         if(!p) return;
-        if(p.time) document.getElementById('s-time').value=p.time;
+        if(p.time) setTimePicker('s', p.time);
         setDurMinutes('s', (+p.durH||0)*60 + (+p.durM||0));
       }catch{}
     }
@@ -1278,7 +1314,7 @@
       const entry=load().find(e=>e.id===id); if(!entry)return;
       editingId=id;
       document.getElementById('m-date').value=entry.koreaDate;
-      document.getElementById('m-time').value=entry.koreaTime;
+      setTimePicker('m', entry.koreaTime);
       document.getElementById('m-link').value=entry.link||'';
       document.getElementById('m-addr').value=entry.addr||'';
       document.getElementById('m-pw').value=entry.pw||'';
