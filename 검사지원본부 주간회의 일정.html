@@ -300,14 +300,14 @@
     .dur-custom-wrap .form-sep { font-size:0.82rem; color:var(--ink-sub); }
 
     /* ── Custom time picker (AM/PM + 시 + 5분) ── */
-    .time-picker { display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
+    .time-picker { display:flex; align-items:center; gap:5px; flex-wrap:nowrap; }
     .time-picker select {
-      font-family:inherit; font-size:0.9rem; padding:6px 8px;
-      border:1px solid var(--border); border-radius:6px; background:#fff;
-      color:var(--ink); cursor:pointer;
+      font-family:inherit; font-size:0.88rem; padding:5px 6px;
+      border:1px solid var(--border); border-radius:5px; background:#fff;
+      color:var(--ink); cursor:pointer; height:30px; box-sizing:border-box;
     }
-    .time-picker select:focus { outline:none; border-color:var(--accent); box-shadow:0 0 0 3px rgba(59,91,219,0.15); }
-    .time-picker .tp-sep { font-size:0.82rem; color:var(--ink-sub); }
+    .time-picker select:focus { outline:none; border-color:var(--accent); box-shadow:0 0 0 2px rgba(59,91,219,0.18); }
+    .time-picker .tp-sep { font-size:0.85rem; color:var(--ink); padding:0 1px; }
     .form-sep { font-size: 0.78rem; color: var(--ink-sub); white-space: nowrap; }
     .pw-wrap { position: relative; }
     .pw-wrap input { padding-right: 48px; }
