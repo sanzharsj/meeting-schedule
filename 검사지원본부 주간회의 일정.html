@@ -416,6 +416,20 @@
     .reminder-item-date { font-size: 0.84rem; font-weight: 600; color: var(--ink); }
     .reminder-item-due  { font-size: 0.74rem; color: var(--ink-sub); margin-top: 1px; }
     .reminder-item-due.urgent { color: var(--vn); font-weight: 600; }
+
+    /* 발송 예약 UI */
+    .resv-row { display:inline-flex; align-items:center; gap:7px; margin-top:6px; flex-wrap:wrap; }
+    .resv-label { font-size:0.72rem; color:var(--ink-sub); }
+    .resv-time { font-size:0.78rem; font-weight:600; color:var(--accent); background:var(--accent-light);
+                 padding:3px 8px; border-radius:6px; border:1px solid #c5d0f5; }
+    .btn-reserve { font-size:0.74rem; font-weight:600; color:#fff; background:var(--accent);
+                   border:none; border-radius:6px; padding:5px 10px; cursor:pointer; font-family:inherit;
+                   transition:background 0.12s; }
+    .btn-reserve:hover { background:#2c47b8; }
+    .btn-cancel-resv { font-size:0.68rem; font-weight:600; color:var(--vn); background:#fff;
+                       border:1px solid var(--vn-border); border-radius:5px; padding:2px 7px;
+                       cursor:pointer; font-family:inherit; line-height:1.2; transition:all 0.12s; }
+    .btn-cancel-resv:hover { background:var(--vn-bg); border-color:var(--vn); }
     .btn-send-mail {
       font-size: 0.72rem; font-weight: 700; color: #fff; background: var(--vn);
       border: none; border-radius: 6px; padding: 4px 11px; cursor: pointer;
@@ -558,7 +572,7 @@
                     </div>
                     <div class="form-row">
                       <label for="s-time">시작 시간 (한국)</label>
-                      <input type="time" id="s-time" value="13:30" />
+                      <input type="time" id="s-time" value="13:30" step="300" />
                     </div>
                     <div class="form-row">
                       <label>회의 시간</label>
@@ -570,9 +584,9 @@
                         <button type="button" class="dur-chip" data-custom="1">직접 입력</button>
                       </div>
                       <div class="dur-custom-wrap" id="s-dur-custom">
-                        <input type="number" id="s-dur-h" min="0" max="12" value="1" />
+                        <input type="number" id="s-dur-h" min="0" max="12" step="1" value="1" />
                         <span class="form-sep">시간</span>
-                        <input type="number" id="s-dur-m" min="0" max="59" value="0" />
+                        <input type="number" id="s-dur-m" min="0" max="55" step="5" value="0" />
                         <span class="form-sep">분</span>
                       </div>
                     </div>
@@ -767,7 +781,7 @@
       </div>
       <div class="form-row">
         <label for="m-time">시작 시간 (한국)</label>
-        <input type="time" id="m-time" />
+        <input type="time" id="m-time" step="300" />
       </div>
       <div class="form-row">
         <label>회의 시간</label>
@@ -779,9 +793,9 @@
           <button type="button" class="dur-chip" data-custom="1">직접 입력</button>
         </div>
         <div class="dur-custom-wrap" id="m-dur-custom">
-          <input type="number" id="m-dur-h" min="0" max="12" value="1" />
+          <input type="number" id="m-dur-h" min="0" max="12" step="1" value="1" />
           <span class="form-sep">시간</span>
-          <input type="number" id="m-dur-m" min="0" max="59" value="0" />
+          <input type="number" id="m-dur-m" min="0" max="55" step="5" value="0" />
           <span class="form-sep">분</span>
         </div>
       </div>
@@ -907,6 +921,25 @@
         syncChipToValue(prefix, total);
         if(prefix==='s') saveFormPref();
       }));
+      // 포커스를 잃을 때(또는 change) 값 clamp + 5분 단위 스냅
+      [hEl,mEl].forEach(inp=>{
+        const onBlur=()=>{
+          const isMin=inp===mEl;
+          const min=0, max=isMin?55:12, step=isMin?5:1;
+          let v=parseInt(inp.value,10);
+          if(isNaN(v)) v=0;
+          if(v<min) v=min;
+          if(v>max) v=max;
+          v=Math.round(v/step)*step;
+          if(v>max) v=max;
+          inp.value=v;
+          const total=(+hEl.value||0)*60+(+mEl.value||0);
+          syncChipToValue(prefix, total);
+          if(prefix==='s') saveFormPref();
+        };
+        inp.addEventListener('blur', onBlur);
+        inp.addEventListener('change', onBlur);
+      });
     }
     function syncChipToValue(prefix, totalMin){
       const chipsEl = document.getElementById(prefix+'-dur-chips');
@@ -1144,7 +1177,11 @@
       switchTab('schedule');
     }
 
-    function deleteEntry(id){save(load().filter(e=>e.id!==id));renderAll();}
+    function deleteEntry(id){
+      save(load().filter(e=>e.id!==id));
+      const s=loadSchedule(); delete s[id]; saveSchedule(s);
+      renderAll();
+    }
     function clearAll(){if(!confirm('모든 일정을 삭제하시겠습니까?'))return;save([]);renderAll();}
 
     // ── Render all ──
@@ -1324,6 +1361,28 @@
 
     function meetingMs(e){return new Date(e.koreaDate+'T'+e.koreaTime+':00+09:00').getTime();}
 
+    // ── 발송 예약 (스케줄) 상태 관리 ──
+    // 값: 'cancelled' = 명시적 취소, 그 외(키 부재 또는 'reserved') = 예약됨(기본)
+    const RSCHED_KEY='reminderSchedule_v1';
+    function loadSchedule(){ try{return JSON.parse(localStorage.getItem(RSCHED_KEY))||{};}catch{return{};} }
+    function saveSchedule(o){ localStorage.setItem(RSCHED_KEY, JSON.stringify(o)); }
+    function isReserved(id){ return loadSchedule()[id]!=='cancelled'; }
+    function reserveSchedule(id){ const s=loadSchedule(); delete s[id]; saveSchedule(s); renderReminderStatus(); }
+    function cancelSchedule(id){ const s=loadSchedule(); s[id]='cancelled'; saveSchedule(s); renderReminderStatus(); }
+    function scheduledMsFor(entry){
+      const days=(loadRS().days||5);
+      return meetingMs(entry) - days*24*3600*1000;
+    }
+    function formatScheduledMs(ms){
+      const parts=new Intl.DateTimeFormat('sv-SE',{
+        timeZone:'Asia/Seoul',
+        year:'numeric',month:'2-digit',day:'2-digit',
+        hour:'2-digit',minute:'2-digit',hour12:false
+      }).formatToParts(new Date(ms));
+      const g=t=>(parts.find(p=>p.type===t)||{}).value||'';
+      return `${g('year')}-${g('month')}-${g('day')} ${g('hour')}:${g('minute')}`;
+    }
+
     function loadReminderUI(){
       const rs=loadRS();
       document.getElementById('remind-days').value=rs.days;
@@ -1392,28 +1451,35 @@
       el.innerHTML=upcoming.map(e=>{
         const mMs=meetingMs(e);
         const diffMs=mMs-nowMs;
-        const diffH=Math.ceil(diffMs/3600000);
         const diffD=Math.ceil(diffMs/86400000);
         const urgent=diffD<=2;
-        const inWindow=diffMs<=windowMs;
         const sent=sentLog[e.id];
 
         const dueText=diffD===0?'오늘':diffD===1?'내일':diffD+'일 후';
 
-        let badge='';
+        let resvHtml='';
         if(sent){
-          badge=sent.type==='manual'
+          resvHtml=sent.type==='manual'
             ?'<span class="reminder-badge badge-manual">수동 발송 완료</span>'
             :'<span class="reminder-badge badge-auto">자동 발송 완료</span>';
-        } else if(inWindow){
-          badge='<span class="reminder-badge badge-pending">발송 예정 ('+diffH+'시간 후)</span>';
+        } else if(isReserved(e.id)){
+          const schedStr=formatScheduledMs(scheduledMsFor(e));
+          resvHtml=`<div class="resv-row">
+            <span class="resv-label">발송 예정</span>
+            <span class="resv-time">${schedStr}</span>
+            <button class="btn-cancel-resv" onclick="cancelSchedule(${e.id})" title="발송 예약 취소">취소</button>
+          </div>`;
+        } else {
+          resvHtml=`<div class="resv-row">
+            <button class="btn-reserve" onclick="reserveSchedule(${e.id})">발송예약</button>
+          </div>`;
         }
 
         return`<div class="reminder-item">
           <div class="reminder-item-info">
             <div class="reminder-item-date">${e.koreaDate} ${e.koreaTime}</div>
             <div class="reminder-item-due ${urgent?'urgent':''}">${dueText} · ${e.durLabel}</div>
-            ${badge}
+            ${resvHtml}
           </div>
           <button class="btn-send-mail" onclick="sendReminder(${e.id})">메일 발송</button>
         </div>`;
@@ -1743,6 +1809,7 @@
         const mMs=meetingMs(e);
         if(mMs<=nowMs) continue;
         if(sentLog[e.id]) continue;
+        if(!isReserved(e.id)) continue;
         if(mMs-nowMs<=windowMs){
           await dispatchMail(e,'auto');
           break; // 한 번에 하나씩
