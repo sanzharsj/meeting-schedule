@@ -178,6 +178,7 @@
     .c-dst { font-size: 0.62rem; font-weight: 700; color: var(--pdt); margin-left: 4px; }
     .c-date-row { display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; }
     .c-holi-text { color: var(--vn) !important; font-weight: 700 !important; }
+    .c-card.c-holi-card { border: 3px solid #d32f2f !important; box-shadow: 0 0 0 1px rgba(211,47,47,0.15); }
     .c-holi-name { font-size: 0.72rem; font-weight: 700; color: var(--vn); white-space: nowrap; }
     .c-divider { width: calc(100% - 1px); height: 1px;
                   background: rgba(0,0,0,0.12);
@@ -1038,7 +1039,7 @@
         const isHoli=!!holiName;
         const dateCls=isHoli?'c-date c-holi-text':'c-date';
         const wdCls=isHoli?`c-weekday c-holi-text`:`c-weekday ${wdClass(c.dow)}`;
-        return`<div class="c-card ${c.key}">
+        return`<div class="c-card ${c.key}${isHoli?' c-holi-card':''}">
           <div class="c-code">${c.code} ${c.city}(${c.country})${c.dst?'<span class="c-dst">서머타임</span>':''}</div>
           <div class="c-divider"></div>
           <div class="c-date-row">
