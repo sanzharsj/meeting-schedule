@@ -434,11 +434,11 @@
                        cursor:pointer; font-family:inherit; line-height:1.2; transition:all 0.12s; }
     .btn-cancel-resv:hover { background:var(--vn-bg); border-color:var(--vn); }
     .btn-send-mail {
-      font-size: 0.72rem; font-weight: 700; color: #fff; background: var(--vn);
+      font-size: 0.72rem; font-weight: 700; color: #fff; background: var(--accent);
       border: none; border-radius: 6px; padding: 4px 11px; cursor: pointer;
       font-family: inherit; white-space: nowrap; flex-shrink: 0; transition: background .15s;
     }
-    .btn-send-mail:hover { background: #a83434; }
+    .btn-send-mail:hover { background: #2c47b8; }
     .reminder-no-contacts { font-size: 0.8rem; color: var(--ink-sub); text-align: center; padding: 12px; }
     .reminder-none { font-size: 0.8rem; color: var(--ink-sub); text-align: center; padding: 12px; }
 
@@ -1430,6 +1430,12 @@
     function isReserved(id){ return loadSchedule()[id]!=='cancelled'; }
     function reserveSchedule(id){ const s=loadSchedule(); delete s[id]; saveSchedule(s); renderReminderStatus(); }
     function cancelSchedule(id){ const s=loadSchedule(); s[id]='cancelled'; saveSchedule(s); renderReminderStatus(); }
+    // 발송 기록 초기화 후 다시 예약 (수동 발송 후 재예약 등에 사용)
+    function reschedule(id){
+      const log=loadSentLog(); delete log[id]; saveSentLog(log);
+      const s=loadSchedule(); delete s[id]; saveSchedule(s);
+      renderReminderStatus();
+    }
     function scheduledMsFor(entry){
       const days=(loadRS().days||5);
       return meetingMs(entry) - days*24*3600*1000;
@@ -1522,9 +1528,14 @@
 
         let resvHtml='';
         if(sent){
-          resvHtml=sent.type==='manual'
-            ?'<span class="reminder-badge badge-manual">수동 발송 완료</span>'
-            :'<span class="reminder-badge badge-auto">자동 발송 완료</span>';
+          if(sent.type==='manual'){
+            resvHtml=`<div class="resv-row">
+              <span class="reminder-badge badge-manual">수동 발송 완료</span>
+              <button class="btn-reserve" onclick="reschedule(${e.id})" title="자동 발송을 다시 예약">재예약</button>
+            </div>`;
+          } else {
+            resvHtml='<span class="reminder-badge badge-auto">자동 발송 완료</span>';
+          }
         } else if(isReserved(e.id)){
           const schedStr=formatScheduledMs(scheduledMsFor(e));
           resvHtml=`<div class="resv-row">
