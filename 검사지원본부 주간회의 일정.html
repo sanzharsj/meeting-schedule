@@ -1373,6 +1373,7 @@
             <div style="font-size:0.95rem;font-weight:700;margin-bottom:8px;color:#1a1a2e;">화상 회의 정보</div>
             <table style="border-collapse:collapse;font-size:0.9rem;">${infoRowsHtml}</table>
           </div>`:''}
+          <p style="margin:20px 0 0 0;"><span style="color:#d32f2f;font-weight:700;">전체 회의 일정 : </span><a href="https://meeting-schedule-rho.vercel.app" style="color:#d32f2f;font-weight:700;text-decoration:underline;">https://meeting-schedule-rho.vercel.app</a></p>
           <p style="margin:20px 0 0 0;">감사합니다.</p>
         </div>
       </body></html>`;
@@ -1396,6 +1397,7 @@
         entry.link?`링크    : ${entry.link}`:'',
         entry.addr?`회의 ID : ${entry.addr}`:'',
         entry.pw  ?`암호    : ${entry.pw}`:'',
+        '','전체 회의 일정 : https://meeting-schedule-rho.vercel.app',
         '','감사합니다.',
       ].filter(l=>l!==undefined&&l!=='').join('\n');
 
